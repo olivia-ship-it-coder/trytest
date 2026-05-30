@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react'
 import { BookOpen, Lightbulb, Bookmark, ArrowLeft } from 'lucide-react'
 import { paragraphs } from '@/data/paragraphs'
 import { concepts } from '@/data/concepts'
+import { sectionToTranslation } from '@/data/sectionTranslationMap'
 import { useBookStore } from '@/stores/bookStore'
 import ConceptPanel from '@/components/ConceptPanel'
 import TOCSidebar from '@/components/TOCSidebar'
+import TranslationView from '@/components/TranslationView'
 
 export default function Reader() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null)
@@ -103,6 +105,7 @@ export default function Reader() {
                 </div>
 
                 <div className="mt-3 flex items-center gap-2">
+                  <TranslationView paragraphIndices={[i]} />
                   {!showAnalysis && (
                     <button
                       onClick={() => {
@@ -222,7 +225,7 @@ export default function Reader() {
                     <h3 className="mb-2 font-serif text-sm font-medium text-ink-800">
                       {section.title}
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {section.title.toLowerCase().includes('存在') && (
                         <button
                           onClick={(e) => {
@@ -233,6 +236,11 @@ export default function Reader() {
                         >
                           查看概念
                         </button>
+                      )}
+                      {readingBook.id === 'sein-und-zeit' && sectionToTranslation[section.id]?.length > 0 && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <TranslationView paragraphIndices={sectionToTranslation[section.id]} />
+                        </div>
                       )}
                     </div>
                   </div>
