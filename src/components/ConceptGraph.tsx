@@ -175,6 +175,10 @@ export default function ConceptGraph({ concepts, onSelect, selectedId }: Concept
       .selectAll<SVGLineElement, SimLink>('line')
       .data(links)
       .join('line')
+      .attr('x1', (d) => nodeMap.get(d.source)?.x ?? 0)
+      .attr('y1', (d) => nodeMap.get(d.source)?.y ?? 0)
+      .attr('x2', (d) => nodeMap.get(d.target)?.x ?? 0)
+      .attr('y2', (d) => nodeMap.get(d.target)?.y ?? 0)
       .attr('stroke', (d) => RELATION_STYLES[d.type]?.stroke || '#999')
       .attr('stroke-width', (d) => d.type === 'contains' ? 2 : 1.5)
       .attr('stroke-dasharray', (d) => RELATION_STYLES[d.type]?.dash || '')
@@ -201,6 +205,7 @@ export default function ConceptGraph({ concepts, onSelect, selectedId }: Concept
       .data(nodes)
       .join('g')
       .attr('cursor', 'pointer')
+      .attr('transform', (d) => `translate(${d.x},${d.y})`)
       .call(
         d3.drag<SVGGElement, SimNode>()
           .on('start', (event, d) => {
