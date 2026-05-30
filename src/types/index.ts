@@ -1,3 +1,8 @@
+export interface ConceptRelation {
+  target: string
+  type: 'contains' | 'derives' | 'opposes' | 'method'
+}
+
 export interface Concept {
   id: string
   name: string
@@ -6,6 +11,9 @@ export interface Concept {
   detailedExplanation: string
   field: string
   relatedConcepts: string[]
+  relations?: ConceptRelation[]
+  sector?: number
+  depth?: number
   source: string
 }
 
