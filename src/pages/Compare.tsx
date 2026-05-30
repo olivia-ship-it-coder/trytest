@@ -17,7 +17,7 @@ export default function Compare() {
   const toggleTranslation = (id: string) => {
     if (activeTranslations.includes(id)) {
       setActiveTranslations((prev) => prev.filter((t) => t !== id))
-    } else if (activeTranslations.length < 3) {
+    } else if (activeTranslations.length < 4) {
       setActiveTranslations((prev) => [...prev, id])
     }
   }
@@ -70,7 +70,7 @@ export default function Compare() {
             <button
               key={t.id}
               onClick={() => toggleTranslation(t.id)}
-              disabled={!isActive && activeTranslations.length >= 3}
+              disabled={!isActive && activeTranslations.length >= 4}
               className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
                 isActive
                   ? 'bg-leather-900 text-page-light shadow-inner-glow'
@@ -82,7 +82,7 @@ export default function Compare() {
           )
         })}
         <span className="ml-2 text-xs text-leather-400">
-          {activeTranslations.length < 3 ? '可再选择 1 个译本' : '最多 3 个译本'}
+          {activeTranslations.length < 4 ? `还可选择 ${4 - activeTranslations.length} 个译本` : '最多 4 个译本'}
         </span>
       </div>
 

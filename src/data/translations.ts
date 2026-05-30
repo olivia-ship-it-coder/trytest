@@ -148,4 +148,53 @@ export const translations: Translation[] = [
       },
     ],
   },
+  {
+    id: 'macquarrie',
+    name: 'Macquarrie & Robinson (English)',
+    translator: 'John Macquarrie, Edward Robinson',
+    publisher: 'Harper & Row',
+    year: 1962,
+    paragraphs: [
+      {
+        id: 'macquarrie-1',
+        content: '"Being" is the most universal concept. This is self-evident. But the "universality" of "Being" is not that of a genus. If we say that beings are distinguished and connected by genus and species, then "Being" is not the delimitation of the highest region of beings: Being is not a genus. The "universality" of Being transcends any universality of genus.',
+        paragraphIndex: 0,
+      },
+      {
+        id: 'macquarrie-2',
+        content: 'We already live in an understanding of Being, but the meaning of Being is veiled in darkness. This fact alone makes it necessary to raise anew the question of the meaning of Being.',
+        paragraphIndex: 1,
+      },
+      {
+        id: 'macquarrie-3',
+        content: 'Before we concretely inquire into the meaning of Being, we must first ask: from which being should we wrest the meaning of Being? From which being may we set out so that Being may be touched in its unconcealedness? The starting-point may seem arbitrary, but in fact it is not. The inquiry into the meaning of Being, in its very way of Being, is Dasein itself.',
+        paragraphIndex: 2,
+      },
+      {
+        id: 'macquarrie-4',
+        content: 'The word "phenomenology" has two components: phenomenon and logos. Both go back to the Greek terms φαινόμενον (that which shows itself) and λόγος (discourse). The name "phenomenology" looks superficially like names such as "theology." But phenomenology is neither a science of "phenomena" nor a discipline that takes "phenomena" as its object.',
+        paragraphIndex: 3,
+      },
+      {
+        id: 'macquarrie-5',
+        content: 'What is it that phenomenology is to "let be seen"? It is that which does not show itself initially and for the most part, something that is concealed relative to what initially and for the most part shows itself. But at the same time it belongs essentially to what initially and for the most part shows itself, constituting its meaning and ground.',
+        paragraphIndex: 4,
+      },
+      {
+        id: 'macquarrie-6',
+        content: 'The Being of Dasein is Being-in-the-world. The compound expression already indicates that it means a unified phenomenon. Dasein is not a "subject" that then by chance enters into relation with a "world." Saying that Dasein is "in the world" does not mean a present-at-hand thing inside another present-at-hand thing — as water is in a glass.',
+        paragraphIndex: 5,
+      },
+      {
+        id: 'macquarrie-7',
+        content: 'That in the face of which we have anxiety is Being-in-the-world as such. In anxiety, things of the surrounding world sink away. The world takes on the character of complete insignificance. In anxiety, Dasein is individualized as its ownmost Being-in-the-world. Anxiety brings Dasein back from its falling prey, confronting it with its ownmost possibility.',
+        paragraphIndex: 6,
+      },
+      {
+        id: 'macquarrie-8',
+        content: 'Authentic Being-toward-death — that is, Dasein\'s authentic Being — must be ontologically characterized as follows: running ahead into death. Dasein runs ahead into death not by waiting for death or fleeing from it as the they do, but by taking death as its ownmost, nonrelational, and insuperable possibility. In this way, Dasein wrests itself back from the fallenness of the they.',
+        paragraphIndex: 7,
+      },
+    ],
+  },
 ]
