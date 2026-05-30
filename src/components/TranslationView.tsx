@@ -38,14 +38,36 @@ export default function TranslationView({ paragraphIndices, showOriginal }: Tran
 
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 text-xs text-leather-500 transition-colors hover:text-crimson-700"
-      >
-        <Languages size={12} />
-        译本对照
-        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-      </button>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          onClick={() => setOpen(!open)}
+          className="inline-flex shrink-0 items-center gap-1 text-xs text-leather-500 transition-colors hover:text-crimson-700"
+        >
+          <Languages size={12} />
+          译本对照
+          {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+
+        <div className="flex flex-wrap justify-end gap-1">
+          {translations.map((t) => {
+            const isActive = selected.includes(t.id)
+            return (
+              <button
+                key={t.id}
+                onClick={() => toggleTranslator(t.id)}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium transition-all',
+                  isActive
+                    ? 'bg-leather-900 text-page-light shadow-inner-glow'
+                    : 'bg-leather-100 text-leather-500 hover:bg-leather-200'
+                )}
+              >
+                {t.translator}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {open && (
         <div className="mt-3 animate-fade-in rounded-lg border border-leather-200 bg-page-light p-4">
@@ -61,26 +83,6 @@ export default function TranslationView({ paragraphIndices, showOriginal }: Tran
               ))}
             </div>
           )}
-
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {translations.map((t) => {
-              const isActive = selected.includes(t.id)
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => toggleTranslator(t.id)}
-                  className={cn(
-                    'rounded-full px-2.5 py-1 text-xs font-medium transition-all',
-                    isActive
-                      ? 'bg-leather-900 text-page-light shadow-inner-glow'
-                      : 'bg-leather-100 text-leather-600 hover:bg-leather-200'
-                  )}
-                >
-                  {t.translator}
-                </button>
-              )
-            })}
-          </div>
 
           <div
             className="grid gap-3"
