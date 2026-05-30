@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { BookOpen, Library, Columns2 } from 'lucide-react'
+import { BookOpen, Library, Columns2, BookMarked } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { path: '/', label: '阅读工作台', icon: BookOpen },
+  { path: '/bookshelf', label: '我的书架', icon: BookMarked },
   { path: '/concepts', label: '概念图书馆', icon: Library },
   { path: '/compare', label: '译本对照室', icon: Columns2 },
 ]

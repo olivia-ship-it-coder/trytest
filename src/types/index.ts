@@ -32,3 +32,28 @@ export interface Translation {
   year: number
   paragraphs: TranslationParagraph[]
 }
+
+export interface Section {
+  id: string
+  title: string
+}
+
+export interface Chapter {
+  id: string
+  title: string
+  sections: Section[]
+}
+
+export interface Book {
+  id: string
+  title: string
+  author: string
+  coverColor: string
+  description: string
+  chapters: Chapter[]
+  source: 'library' | 'upload'
+  pdfData?: string
+  fileName?: string
+  fileSize?: number
+  uploadedAt?: number
+}

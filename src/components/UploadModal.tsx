@@ -1,0 +1,129 @@
+import { useState, useRef } from 'react'
+import { Upload, X, FileText, Check } from 'lucide-react'
+import { useBookStore } from '@/stores/bookStore'
+import type { Book } from '@/types'
+
+export default function UploadModal() {
+  const [dragOver, setDragOver] = useState(false)
+  const [uploaded, setUploaded] = useState<{ name: string; size: number } | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { addUploadedBook, setShowUploadModal, setReadingBook } = useBookStore()
+
+  const handleFile = (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf')) return
+    setUploaded({ name: file.name, size: file.size })
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      const id = `upload-${Date.now()}`
+      const book: Book = {
+        id,
+        title: file.name.replace(/\.pdf$/i, ''),
+        author: '上传图书',
+        coverColor: '#5C4B3A',
+        description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+        chapters: [
+          { id: `${id}-full`, title: '全文', sections: [] },
+        ],
+        source: 'upload',
+        pdfData: dataUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        uploadedAt: Date.now(),
+      }
+      addUploadedBook(book)
+      setReadingBook(book)
+      setShowUploadModal(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={() => setShowUploadModal(false)}
+    >
+      <div
+        className="mx-4 w-full max-w-md rounded-xl bg-page-light shadow-book-lg animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-leather-200 px-5 py-4">
+          <h2 className="font-serif text-base font-semibold text-ink-800">上传 PDF 图书</h2>
+          <button
+            onClick={() => setShowUploadModal(false)}
+            className="rounded-full p-1 text-leather-400 hover:text-leather-600"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5">
+          {uploaded ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
+                <Check size={24} className="text-green-600" />
+              </div>
+              <div className="text-center">
+                <p className="font-serif text-sm font-medium text-ink-800">{uploaded.name}</p>
+                <p className="text-xs text-leather-500">{formatSize(uploaded.size)}</p>
+              </div>
+              <p className="text-xs text-green-600">上传成功，正在打开...</p>
+            </div>
+          ) : (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => inputRef.current?.click()}
+              className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 transition-colors ${
+                dragOver
+                  ? 'border-crimson-400 bg-crimson-50/30'
+                  : 'border-leather-300 bg-leather-50/30 hover:border-leather-400'
+              }`}
+            >
+              <Upload size={28} className="text-leather-400" />
+              <div className="text-center">
+                <p className="font-serif text-sm text-ink-700">
+                  点击选择文件或拖放 PDF 到此处
+                </p>
+                <p className="mt-1 text-xs text-leather-400">仅支持 PDF 格式</p>
+              </div>
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleFile(file)
+                }}
+              />
+            </div>
+          )}
+
+          <div className="mt-4 rounded-lg bg-leather-50/50 p-3">
+            <div className="flex items-center gap-2">
+              <FileText size={14} className="text-leather-500" />
+              <span className="text-xs text-leather-500">
+                上传的 PDF 文件将保存在浏览器本地，可随时在书架中打开阅读
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
