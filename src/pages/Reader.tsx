@@ -7,6 +7,7 @@ import { useBookStore } from '@/stores/bookStore'
 import ConceptPanel from '@/components/ConceptPanel'
 import TOCSidebar from '@/components/TOCSidebar'
 import TranslationView from '@/components/TranslationView'
+import ThreeColumnReader from '@/components/ThreeColumnReader'
 
 export default function Reader() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null)
@@ -158,6 +159,25 @@ export default function Reader() {
     )
   }
 
+  if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md') && readingBook.contentText) {
+    return (
+      <div className="h-[calc(100vh-5rem)]">
+        <div className="px-6 py-3 bg-white border-b border-leather-200 flex items-center gap-3">
+          <button
+            onClick={() => setReadingBook(null)}
+            className="inline-flex items-center gap-1 text-xs text-leather-500 transition-colors hover:text-crimson-700"
+          >
+            <ArrowLeft size={14} />
+            返回书架
+          </button>
+          <h1 className="font-serif text-lg font-bold text-ink-900">{readingBook.title}</h1>
+          <p className="font-serif text-sm text-leather-500">{readingBook.author}</p>
+        </div>
+        <ThreeColumnReader />
+      </div>
+    )
+  }
+
   return (
     <div className="animate-fade-in">
       <TOCSidebar />
@@ -191,15 +211,6 @@ export default function Reader() {
                   </p>
                 </div>
               </object>
-            ) : readingBook.fileType === 'txt' || readingBook.fileType === 'md' ? (
-              <div className="h-[calc(100vh-12rem)] p-6 overflow-y-auto">
-                <div className="whitespace-pre-wrap font-serif text-ink-800 leading-relaxed" dangerouslySetInnerHTML={{
-                  __html: atob(readingBook.fileData.split(',')[1])
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                }} />
-              </div>
             ) : (
               <div className="flex h-[calc(100vh-12rem)] flex-col items-center justify-center p-8">
                 <p className="font-serif text-sm text-leather-500 mb-4">

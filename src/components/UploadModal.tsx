@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Upload, X, FileText, Check } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Book } from '@/types'
+import { parseChapters } from '@/utils/chapterParser'
 
 const supportedFormats = [
   'pdf', 'epub', 'mobi', 'txt', 'md',
@@ -34,6 +35,21 @@ export default function UploadModal() {
     return colorMap[ext] || '#5C4B3A'
   }
 
+  const extractTextFromDataUrl = (dataUrl: string, ext: string): string => {
+    try {
+      const base64 = dataUrl.split(',')[1]
+      const decoded = atob(base64)
+      
+      if (ext === 'txt' || ext === 'md') {
+        return decoded
+      }
+      
+      return ''
+    } catch {
+      return ''
+    }
+  }
+
   const handleFile = (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
@@ -44,6 +60,17 @@ export default function UploadModal() {
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string
       const id = `upload-${Date.now()}`
+      
+      let contentText = ''
+      let parsedChapters: any[] = []
+      
+      if (ext === 'txt' || ext === 'md') {
+        contentText = extractTextFromDataUrl(dataUrl, ext)
+        if (contentText) {
+          parsedChapters = parseChapters(contentText)
+        }
+      }
+      
       const book: Book = {
         id,
         title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
@@ -59,6 +86,10 @@ export default function UploadModal() {
         fileSize: file.size,
         fileType: ext,
         uploadedAt: Date.now(),
+        contentText,
+        parsedChapters,
+        annotations: [],
+        highlights: [],
       }
       addUploadedBook(book)
       setReadingBook(book)
