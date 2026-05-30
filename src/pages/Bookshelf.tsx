@@ -92,7 +92,7 @@ export default function Bookshelf() {
               {book.source === 'upload' && (
                 <div className="absolute right-3 top-3 z-10 rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
                   <FileText size={10} className="mr-0.5 inline" />
-                  PDF
+                  {book.fileType?.toUpperCase() || 'FILE'}
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { BookOpen, Lightbulb, Bookmark, ArrowLeft } from 'lucide-react'
+import { BookOpen, Lightbulb, Bookmark, ArrowLeft, FileText } from 'lucide-react'
 import { paragraphs } from '@/data/paragraphs'
 import { concepts } from '@/data/concepts'
 import { sectionToTranslation } from '@/data/sectionTranslationMap'
@@ -177,19 +177,44 @@ export default function Reader() {
           </div>
         </div>
 
-        {readingBook.source === 'upload' && readingBook.pdfData ? (
+        {readingBook.source === 'upload' && readingBook.fileData ? (
           <div className="rounded-xl border border-leather-200 bg-white/80 shadow-book overflow-hidden">
-            <object
-              data={readingBook.pdfData}
-              type="application/pdf"
-              className="h-[calc(100vh-12rem)] w-full"
-            >
-              <div className="flex h-full items-center justify-center p-8">
-                <p className="font-serif text-sm text-leather-500">
-                  浏览器不支持直接预览，请下载后查看
-                </p>
+            {readingBook.fileType === 'pdf' ? (
+              <object
+                data={readingBook.fileData}
+                type="application/pdf"
+                className="h-[calc(100vh-12rem)] w-full"
+              >
+                <div className="flex h-full items-center justify-center p-8">
+                  <p className="font-serif text-sm text-leather-500">
+                    浏览器不支持直接预览，请下载后查看
+                  </p>
+                </div>
+              </object>
+            ) : readingBook.fileType === 'txt' || readingBook.fileType === 'md' ? (
+              <div className="h-[calc(100vh-12rem)] p-6 overflow-y-auto">
+                <div className="whitespace-pre-wrap font-serif text-ink-800 leading-relaxed" dangerouslySetInnerHTML={{
+                  __html: atob(readingBook.fileData.split(',')[1])
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                }} />
               </div>
-            </object>
+            ) : (
+              <div className="flex h-[calc(100vh-12rem)] flex-col items-center justify-center p-8">
+                <p className="font-serif text-sm text-leather-500 mb-4">
+                  该格式（.{readingBook.fileType}）暂不支持直接预览
+                </p>
+                <a
+                  href={readingBook.fileData}
+                  download={readingBook.fileName}
+                  className="inline-flex items-center gap-2 rounded-lg bg-crimson-50 px-4 py-2 text-sm text-crimson-700 hover:bg-crimson-100"
+                >
+                  <FileText size={16} />
+                  下载文件
+                </a>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex gap-8">

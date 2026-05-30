@@ -3,14 +3,41 @@ import { Upload, X, FileText, Check } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Book } from '@/types'
 
+const supportedFormats = [
+  'pdf', 'epub', 'mobi', 'txt', 'md',
+  'rtf', 'doc', 'docx', 'odt'
+]
+
 export default function UploadModal() {
   const [dragOver, setDragOver] = useState(false)
   const [uploaded, setUploaded] = useState<{ name: string; size: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { addUploadedBook, setShowUploadModal, setReadingBook } = useBookStore()
 
+  const getFileExtension = (filename: string): string => {
+    const lastDot = filename.lastIndexOf('.')
+    return lastDot !== -1 ? filename.slice(lastDot + 1).toLowerCase() : ''
+  }
+
+  const getCoverColor = (ext: string): string => {
+    const colorMap: Record<string, string> = {
+      'pdf': '#5C4B3A',
+      'epub': '#8B2C0E',
+      'mobi': '#2A5545',
+      'txt': '#4B5658',
+      'md': '#6B4F66',
+      'rtf': '#5A6B58',
+      'doc': '#2B5C8A',
+      'docx': '#1F5C99',
+      'odt': '#336699'
+    }
+    return colorMap[ext] || '#5C4B3A'
+  }
+
   const handleFile = (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.pdf')) return
+    const ext = getFileExtension(file.name)
+    if (!supportedFormats.includes(ext)) return
+
     setUploaded({ name: file.name, size: file.size })
 
     const reader = new FileReader()
@@ -19,17 +46,18 @@ export default function UploadModal() {
       const id = `upload-${Date.now()}`
       const book: Book = {
         id,
-        title: file.name.replace(/\.pdf$/i, ''),
+        title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
         author: '上传图书',
-        coverColor: '#5C4B3A',
+        coverColor: getCoverColor(ext),
         description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
         chapters: [
           { id: `${id}-full`, title: '全文', sections: [] },
         ],
         source: 'upload',
-        pdfData: dataUrl,
+        fileData: dataUrl,
         fileName: file.name,
         fileSize: file.size,
+        fileType: ext,
         uploadedAt: Date.now(),
       }
       addUploadedBook(book)
@@ -61,7 +89,7 @@ export default function UploadModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-leather-200 px-5 py-4">
-          <h2 className="font-serif text-base font-semibold text-ink-800">上传 PDF 图书</h2>
+          <h2 className="font-serif text-base font-semibold text-ink-800">上传图书</h2>
           <button
             onClick={() => setShowUploadModal(false)}
             className="rounded-full p-1 text-leather-400 hover:text-leather-600"
@@ -97,14 +125,14 @@ export default function UploadModal() {
               <Upload size={28} className="text-leather-400" />
               <div className="text-center">
                 <p className="font-serif text-sm text-ink-700">
-                  点击选择文件或拖放 PDF 到此处
+                  点击选择文件或拖放文件到此处
                 </p>
-                <p className="mt-1 text-xs text-leather-400">仅支持 PDF 格式</p>
+                <p className="mt-1 text-xs text-leather-400">支持 PDF、EPUB、MOBI、TXT、MD、RTF、DOC、DOCX、ODT</p>
               </div>
               <input
                 ref={inputRef}
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.epub,.mobi,.txt,.md,.rtf,.doc,.docx,.odt"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
@@ -118,7 +146,7 @@ export default function UploadModal() {
             <div className="flex items-center gap-2">
               <FileText size={14} className="text-leather-500" />
               <span className="text-xs text-leather-500">
-                上传的 PDF 文件将保存在浏览器本地，可随时在书架中打开阅读
+                上传的文件将保存在浏览器本地，可随时在书架中打开阅读
               </span>
             </div>
           </div>

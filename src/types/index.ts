@@ -60,8 +60,9 @@ export interface Book {
   description: string
   chapters: Chapter[]
   source: 'library' | 'upload'
-  pdfData?: string
+  fileData?: string
   fileName?: string
   fileSize?: number
+  fileType?: string
   uploadedAt?: number
 }
