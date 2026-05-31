@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, X, FileText, Check, Clipboard } from 'lucide-react'
+import { Upload, X, FileText, Check } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Book } from '@/types'
 import { parseChapters } from '@/utils/chapterParser'
@@ -12,11 +12,9 @@ const supportedFormats = [
 ]
 
 export default function UploadModal() {
-  const [tab, setTab] = useState<'file' | 'paste'>('file')
   const [dragOver, setDragOver] = useState(false)
   const [uploaded, setUploaded] = useState<{ name: string; size: number } | null>(null)
   const [processing, setProcessing] = useState(false)
-  const [pasteText, setPasteText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { addUploadedBook, setShowUploadModal, setReadingBook } = useBookStore()
@@ -194,45 +192,6 @@ export default function UploadModal() {
     })
   }
 
-  const handlePasteSubmit = () => {
-    const text = pasteText.trim()
-    if (!text) return
-    setProcessing(true)
-    setUploaded({ name: '粘贴文本', size: text.length })
-
-    setTimeout(() => {
-      const id = `paste-${Date.now()}`
-      const lines = text.split('\n')
-      const title = lines[0].replace(/^[#\s]*/, '').slice(0, 40) || '粘贴文本'
-      const parsedChapters = parseChapters(text)
-
-      const book: Book = {
-        id,
-        title,
-        author: '粘贴文本',
-        coverColor: '#4B5658',
-        description: `粘贴时间：${new Date().toLocaleDateString('zh-CN')}`,
-        chapters: [
-          { id: `${id}-full`, title: '全文', sections: [] },
-        ],
-        source: 'upload',
-        fileData: '',
-        fileName: 'paste.txt',
-        fileSize: text.length,
-        fileType: 'txt',
-        uploadedAt: Date.now(),
-        contentText: text,
-        parsedChapters,
-        annotations: [],
-        highlights: [],
-      }
-      addUploadedBook(book)
-      setReadingBook(book)
-      setShowUploadModal(false)
-      navigate('/')
-    }, 100)
-  }
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
@@ -265,30 +224,6 @@ export default function UploadModal() {
         </div>
 
         <div className="p-5">
-          {/* Tab switcher */}
-          <div className="mb-4 flex rounded-lg bg-leather-100 p-0.5">
-            <button
-              onClick={() => setTab('file')}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === 'file'
-                  ? 'bg-white text-ink-800 shadow-sm'
-                  : 'text-leather-500 hover:text-ink-700'
-              }`}
-            >
-              <Upload size={14} />上传文件
-            </button>
-            <button
-              onClick={() => setTab('paste')}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === 'paste'
-                  ? 'bg-white text-ink-800 shadow-sm'
-                  : 'text-leather-500 hover:text-ink-700'
-              }`}
-            >
-              <Clipboard size={14} />粘贴文本
-            </button>
-          </div>
-
           {uploaded ? (
             <div className="flex flex-col items-center gap-3 py-6">
               <div className={`flex h-14 w-14 items-center justify-center rounded-full ${processing ? 'bg-leather-100' : 'bg-green-50'}`}>
@@ -306,7 +241,7 @@ export default function UploadModal() {
                 {processing ? '正在解析，请稍候...' : '上传成功，正在打开...'}
               </p>
             </div>
-          ) : tab === 'file' ? (
+          ) : (
             <div
               onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
@@ -336,31 +271,13 @@ export default function UploadModal() {
                 }}
               />
             </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <textarea
-                value={pasteText}
-                onChange={(e) => setPasteText(e.target.value)}
-                placeholder="在此粘贴图书文本内容..."
-                className="h-60 w-full resize-none rounded-xl border border-leather-300 bg-white/80 p-4 font-serif text-sm leading-relaxed text-ink-800 placeholder:text-leather-400 focus:border-crimon-300 focus:outline-none focus:ring-1 focus:ring-crimon-300/30"
-              />
-              <button
-                onClick={handlePasteSubmit}
-                disabled={!pasteText.trim()}
-                className="self-end rounded-lg bg-crimson-700 px-5 py-2 font-serif text-sm text-white transition-colors hover:bg-crimson-800 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                确认导入
-              </button>
-            </div>
           )}
 
           <div className="mt-4 rounded-lg bg-leather-50/50 p-3">
             <div className="flex items-center gap-2">
               <FileText size={14} className="text-leather-500" />
               <span className="text-xs text-leather-500">
-                {tab === 'paste'
-                  ? '粘贴的文本将自动解析章节结构，保存在浏览器本地，可随时在书架中打开阅读'
-                  : '上传的文件将保存在浏览器本地，可随时在书架中打开阅读'}
+                上传的文件将保存在浏览器本地，可随时在书架中打开阅读
               </span>
             </div>
           </div>
