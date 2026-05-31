@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { BookOpen, Lightbulb, Bookmark, ArrowLeft, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BookOpen, Lightbulb, Bookmark, ArrowLeft, FileText, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { paragraphs } from '@/data/paragraphs'
 import { concepts } from '@/data/concepts'
 import { sectionToTranslation } from '@/data/sectionTranslationMap'
@@ -12,6 +12,16 @@ export default function Reader() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(true)
   const [activeParagraph, setActiveParagraph] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  const toggleExpanded = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const {
     readingBook,
@@ -45,6 +55,68 @@ export default function Reader() {
   const currentSection = currentChapter?.sections.find((s) => s.id === currentSectionId)
 
   const bookContentWidth = showTOC ? 'ml-64' : 'ml-0'
+
+  // Build hierarchical tree from flat parsed chapters
+  interface TreeGroup {
+    key: string
+    label: string
+    children: { id: string; title: string; startIndex: number; endIndex: number }[]
+  }
+  const chapterTree = useMemo((): TreeGroup[] => {
+    const chapters = readingBook?.parsedChapters
+    if (!chapters || chapters.length === 0) return []
+
+    const groupMap = new Map<string, TreeGroup>()
+    const ungrouped: TreeGroup = { key: '__ungrouped__', label: '', children: [] }
+
+    for (const ch of chapters) {
+      // Try to extract group prefix: text before "第X卷/章/节/篇/部/Part/Chapter/Book"
+      const m = ch.title.match(/^(.+?)[·\s]*(第[一二三四五六七八九十百千万\d]+[卷章节篇部]|[卷章节篇部]\d+|Book\s+\d+|Part\s+\d+|Chapter\s+\d+).*$/i)
+      if (m) {
+        const prefix = m[1].trim()
+        if (!groupMap.has(prefix)) {
+          groupMap.set(prefix, { key: prefix, label: prefix, children: [] })
+        }
+        groupMap.get(prefix)!.children.push({
+          id: ch.id,
+          title: ch.title,
+          startIndex: ch.startIndex,
+          endIndex: ch.endIndex,
+        })
+      } else {
+        ungrouped.children.push({
+          id: ch.id,
+          title: ch.title,
+          startIndex: ch.startIndex,
+          endIndex: ch.endIndex,
+        })
+      }
+    }
+
+    const result: TreeGroup[] = []
+    // Only add groups that have more than one child, otherwise flatten
+    for (const group of groupMap.values()) {
+      if (group.children.length > 1) {
+        result.push(group)
+      } else {
+        ungrouped.children.push(...group.children)
+      }
+    }
+    if (ungrouped.children.length > 0) {
+      result.push(ungrouped)
+    }
+    return result
+  }, [readingBook?.parsedChapters])
+
+  // Auto-expand first group
+  useMemo(() => {
+    if (chapterTree.length > 0 && expandedGroups.size === 0) {
+      const first = chapterTree[0]
+      if (first.key !== '__ungrouped__') {
+        setExpandedGroups(new Set([first.key]))
+      }
+    }
+  }, [chapterTree])
 
   console.log('[Reader] rendering condition check, readingBook:', readingBook)
 
@@ -178,25 +250,72 @@ export default function Reader() {
     
     return (
       <div className="flex h-[calc(100vh-5rem)]">
-        {/* Left panel - chapters (collapsible) */}
+        {/* Left panel - chapters (collapsible tree) */}
         <div className={`${showTOC ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden shrink-0 bg-white border-r border-leather-200 flex flex-col`}>
-          <div className="p-4 border-b border-leather-200 shrink-0">
-            <h3 className="font-serif font-semibold text-ink-800">目录</h3>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            {readingBook.parsedChapters?.map((ch) => (
+          <div className="p-3 border-b border-leather-200 shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
               <button
-                key={ch.id}
-                onClick={() => setCurrentParsedChapter(ch.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                  currentParsedChapterId === ch.id
-                    ? 'bg-crimson-50 text-crimson-700'
-                    : 'text-ink-600 hover:bg-leather-50'
-                }`}
+                onClick={toggleTOC}
+                className="rounded p-0.5 text-leather-400 hover:text-leather-600 hover:bg-leather-100"
+                title="收起目录"
               >
-                {ch.title}
+                <ChevronLeft size={16} />
               </button>
-            ))}
+              <h3 className="font-serif font-bold text-ink-900">{readingBook.title}</h3>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto py-2 px-2">
+            {chapterTree.map((group) =>
+              group.key === '__ungrouped__' ? (
+                group.children.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => setCurrentParsedChapter(ch.id)}
+                    className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      currentParsedChapterId === ch.id
+                        ? 'bg-crimson-50 text-crimson-700 font-medium'
+                        : 'text-ink-600 hover:bg-leather-50'
+                    }`}
+                  >
+                    {ch.title}
+                  </button>
+                ))
+              ) : (
+                <div key={group.key} className="mb-1">
+                  <button
+                    onClick={() => toggleExpanded(group.key)}
+                    className="w-full flex items-center gap-1 px-2 py-1.5 rounded-md text-sm font-bold text-ink-900 hover:bg-leather-50 transition-colors"
+                  >
+                    {expandedGroups.has(group.key) ? (
+                      <ChevronDown size={14} className="shrink-0 text-leather-400" />
+                    ) : (
+                      <ChevronRight size={14} className="shrink-0 text-leather-400" />
+                    )}
+                    {group.label}
+                  </button>
+                  {expandedGroups.has(group.key) && (
+                    <div className="ml-3 border-l border-leather-200 pl-2">
+                      {group.children.map((ch) => (
+                        <button
+                          key={ch.id}
+                          onClick={() => setCurrentParsedChapter(ch.id)}
+                          className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                            currentParsedChapterId === ch.id
+                              ? 'bg-crimson-50 text-crimson-700 font-medium'
+                              : 'text-ink-600 hover:bg-leather-50'
+                          }`}
+                        >
+                          {ch.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+            {chapterTree.length === 0 && (
+              <p className="px-3 py-4 text-sm text-leather-400 italic">暂无目录</p>
+            )}
           </div>
         </div>
 
@@ -204,13 +323,15 @@ export default function Reader() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-leather-200 bg-white shrink-0">
             <div className="flex items-center gap-3">
-              <button
-                onClick={toggleTOC}
-                className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
-                title={showTOC ? '收起目录' : '展开目录'}
-              >
-                {showTOC ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-              </button>
+              {!showTOC && (
+                <button
+                  onClick={toggleTOC}
+                  className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
+                  title="展开目录"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              )}
               <button
                 onClick={() => setReadingBook(null)}
                 className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
