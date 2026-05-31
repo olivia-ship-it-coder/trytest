@@ -4,6 +4,7 @@ import { Upload, X, FileText, Check } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Book } from '@/types'
 import { parseChapters } from '@/utils/chapterParser'
+import { parseEpub } from '@/utils/epubParser'
 
 const supportedFormats = [
   'pdf', 'epub', 'mobi', 'txt', 'md',
@@ -44,7 +45,7 @@ export default function UploadModal() {
     setUploaded({ name: file.name, size: file.size })
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const arrayBuffer = e.target?.result as ArrayBuffer
         if (!arrayBuffer || arrayBuffer.byteLength === 0) {
@@ -73,6 +74,12 @@ export default function UploadModal() {
             parsedChapters = parseChapters(contentText)
             console.log('[Upload] parsed chapters:', parsedChapters.length)
           }
+        } else if (ext === 'epub') {
+          console.log('[Upload] parsing EPUB...')
+          const result = await parseEpub(arrayBuffer)
+          contentText = result.contentText
+          parsedChapters = result.parsedChapters
+          console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
         }
         
         const book: Book = {
@@ -102,6 +109,8 @@ export default function UploadModal() {
         navigate('/')
       } catch (err) {
         console.error('[Upload] error processing file:', err)
+        // Reset upload state so user can try again
+        setUploaded(null)
       }
     }
     reader.onerror = (err) => {

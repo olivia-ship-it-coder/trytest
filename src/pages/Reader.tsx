@@ -161,7 +161,7 @@ export default function Reader() {
     )
   }
 
-  if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md') && readingBook.contentText) {
+  if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md' || readingBook.fileType === 'epub') && readingBook.contentText) {
     console.log('[Reader] uploading book - show ThreeColumnReader', {
       source: readingBook.source,
       fileType: readingBook.fileType,
