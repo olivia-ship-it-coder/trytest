@@ -148,16 +148,36 @@ export default function UploadModal() {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
 
-    // Read file BEFORE any React state updates
-    const reader = new FileReader()
-    const arrayBuffer = await new Promise<ArrayBuffer | null>((resolve) => {
-      reader.onload = () => resolve(reader.result as ArrayBuffer)
-      reader.onerror = () => resolve(null)
-      reader.readAsArrayBuffer(file)
-    })
+    // Try multiple reading strategies
+    const readFile = (): Promise<ArrayBuffer | null> => {
+      return new Promise((resolve) => {
+        // Strategy A: readAsArrayBuffer
+        const r1 = new FileReader()
+        r1.onload = () => resolve(r1.result as ArrayBuffer)
+        r1.onerror = () => {
+          // Strategy B: readAsText with ISO-8859-1 (byte-preserving encoding)
+          const r2 = new FileReader()
+          r2.onload = () => {
+            const text = r2.result as string
+            const buf = new ArrayBuffer(text.length)
+            const view = new Uint8Array(buf)
+            for (let i = 0; i < text.length; i++) {
+              view[i] = text.charCodeAt(i) & 0xff
+            }
+            resolve(buf)
+          }
+          r2.onerror = () => resolve(null)
+          r2.readAsText(file, 'iso-8859-1')
+        }
+        r1.readAsArrayBuffer(file)
+      })
+    }
 
+    const arrayBuffer = await readFile()
     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
       console.error('[Upload] unable to read file')
+      setUploaded(null)
+      setProcessing(false)
       return
     }
 
