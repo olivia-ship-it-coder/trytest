@@ -56,67 +56,166 @@ export default function Reader() {
 
   const bookContentWidth = showTOC ? 'ml-64' : 'ml-0'
 
-  // Build hierarchical tree from flat parsed chapters
-  interface TreeGroup {
+  // ── 3-level tree: 书籍 → 卷册 → 章节 ──
+  interface TOCNode {
     key: string
     label: string
-    children: { id: string; title: string; startIndex: number; endIndex: number }[]
+    children: TOCNode[]
+    chapterId?: string
   }
-  const chapterTree = useMemo((): TreeGroup[] => {
+
+  // Parse a chapter title into hierarchical parts
+  function parseTitle(title: string): { book?: string; volume?: string; chapter?: string } | null {
+    // Book + Volume + Chapter  (e.g. "沉思录 第一卷 第一章")
+    const m1 = title.match(/^(.+?)[·\s]*(第[一二三四五六七八九十百千万\d]+[卷部集])[·\s]*(第[一二三四五六七八九十百千万\d]+[章节篇]).*$/i)
+    if (m1) return { book: m1[1].trim(), volume: m1[2], chapter: m1[3] }
+    // Book + Chapter  (e.g. "沉思录 第一章")
+    const m2 = title.match(/^(.+?)[·\s]*(第[一二三四五六七八九十百千万\d]+[章节篇]).*$/i)
+    if (m2) return { book: m2[1].trim(), chapter: m2[2] }
+    // Book + Volume only  (e.g. "沉思录 第一卷")
+    const m3 = title.match(/^(.+?)[·\s]*(第[一二三四五六七八九十百千万\d]+[卷部集]).*$/i)
+    if (m3) return { book: m3[1].trim(), volume: m3[2] }
+    // Just Chapter  (e.g. "第一章")
+    const m4 = title.match(/^(第[一二三四五六七八九十百千万\d]+[章节篇]).*$/i)
+    if (m4) return { chapter: m4[1] }
+    // Just Volume  (e.g. "第一卷")
+    const m5 = title.match(/^(第[一二三四五六七八九十百千万\d]+[卷部集]).*$/i)
+    if (m5) return { volume: m5[1] }
+    // Book only (no recognizable suffix)
+    return null
+  }
+
+  const tocTree = useMemo((): TOCNode[] => {
     const chapters = readingBook?.parsedChapters
     if (!chapters || chapters.length === 0) return []
 
-    const groupMap = new Map<string, TreeGroup>()
-    const ungrouped: TreeGroup = { key: '__ungrouped__', label: '', children: [] }
+    const roots: TOCNode[] = []
 
     for (const ch of chapters) {
-      // Try to extract group prefix: text before "第X卷/章/节/篇/部/Part/Chapter/Book"
-      const m = ch.title.match(/^(.+?)[·\s]*(第[一二三四五六七八九十百千万\d]+[卷章节篇部]|[卷章节篇部]\d+|Book\s+\d+|Part\s+\d+|Chapter\s+\d+).*$/i)
-      if (m) {
-        const prefix = m[1].trim()
-        if (!groupMap.has(prefix)) {
-          groupMap.set(prefix, { key: prefix, label: prefix, children: [] })
-        }
-        groupMap.get(prefix)!.children.push({
-          id: ch.id,
-          title: ch.title,
-          startIndex: ch.startIndex,
-          endIndex: ch.endIndex,
-        })
-      } else {
-        ungrouped.children.push({
-          id: ch.id,
-          title: ch.title,
-          startIndex: ch.startIndex,
-          endIndex: ch.endIndex,
-        })
-      }
-    }
+      const parsed = parseTitle(ch.title)
 
-    const result: TreeGroup[] = []
-    // Only add groups that have more than one child, otherwise flatten
-    for (const group of groupMap.values()) {
-      if (group.children.length > 1) {
-        result.push(group)
+      // Helper: find or create a child node in parent
+      const ensureNode = (siblings: TOCNode[], label: string): TOCNode => {
+        let found = siblings.find((n) => n.label === label)
+        if (!found) {
+          found = { key: `node-${label}`, label, children: [] }
+          siblings.push(found)
+        }
+        return found
+      }
+
+      // Helper: add a leaf to siblings (returns the leaf node)
+      const addLeaf = (siblings: TOCNode[], label: string): TOCNode => {
+        const leaf: TOCNode = { key: ch.id, label, children: [], chapterId: ch.id }
+        // Remove placeholder with matching label (if a group node was created earlier as placeholder)
+        const idx = siblings.findIndex((n) => n.label === label && !n.chapterId && n.children.length === 0)
+        if (idx !== -1) {
+          siblings[idx] = leaf
+        } else {
+          siblings.push(leaf)
+        }
+        return leaf
+      }
+
+      if (!parsed) {
+        // Can't parse → standalone leaf with full title
+        roots.push({ key: ch.id, label: ch.title, children: [], chapterId: ch.id })
+        continue
+      }
+
+      if (parsed.book && parsed.volume && parsed.chapter) {
+        // 3 levels: Book → Volume → Chapter
+        const book = ensureNode(roots, parsed.book)
+        const vol = ensureNode(book.children, parsed.volume)
+        addLeaf(vol.children, parsed.chapter)
+      } else if (parsed.book && parsed.volume) {
+        // 2 levels: Book → Volume (volume IS the leaf for this file)
+        const book = ensureNode(roots, parsed.book)
+        addLeaf(book.children, parsed.volume)
+      } else if (parsed.book && parsed.chapter) {
+        // 2 levels: Book → Chapter
+        const book = ensureNode(roots, parsed.book)
+        addLeaf(book.children, parsed.chapter)
+      } else if (parsed.volume && parsed.chapter) {
+        // 2 levels: (no book) Volume → Chapter
+        const vol = ensureNode(roots, parsed.volume)
+        addLeaf(vol.children, parsed.chapter)
+      } else if (parsed.volume) {
+        // 1 level: standalone Volume
+        roots.push({ key: ch.id, label: parsed.volume, children: [], chapterId: ch.id })
+      } else if (parsed.chapter) {
+        // 1 level: standalone Chapter
+        roots.push({ key: ch.id, label: parsed.chapter, children: [], chapterId: ch.id })
       } else {
-        ungrouped.children.push(...group.children)
+        // Fallback
+        roots.push({ key: ch.id, label: ch.title, children: [], chapterId: ch.id })
       }
     }
-    if (ungrouped.children.length > 0) {
-      result.push(ungrouped)
-    }
-    return result
+    return roots
   }, [readingBook?.parsedChapters])
 
-  // Auto-expand first group
+  // Auto-expand first book
   useMemo(() => {
-    if (chapterTree.length > 0 && expandedGroups.size === 0) {
-      const first = chapterTree[0]
-      if (first.key !== '__ungrouped__') {
-        setExpandedGroups(new Set([first.key]))
+    if (tocTree.length > 0 && expandedGroups.size === 0) {
+      const firstGroup = tocTree.find((n) => n.children.length > 0)
+      if (firstGroup) {
+        setExpandedGroups(new Set([firstGroup.key]))
       }
     }
-  }, [chapterTree])
+  }, [tocTree])
+
+  // Recursive TOC node renderer
+  const renderNode = (node: TOCNode, depth: number) => {
+    const hasChildren = node.children.length > 0
+    const isExpanded = expandedGroups.has(node.key)
+    const isActive = node.chapterId === currentParsedChapterId
+
+    if (!hasChildren) {
+      return (
+        <button
+          key={node.key}
+          onClick={() => node.chapterId && setCurrentParsedChapter(node.chapterId)}
+          className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+            isActive
+              ? 'bg-crimson-50 text-crimson-700 font-medium'
+              : 'text-ink-600 hover:bg-leather-50'
+          }`}
+          style={{ paddingLeft: `${12 + depth * 16}px` }}
+        >
+          {node.label}
+        </button>
+      )
+    }
+
+    return (
+      <div key={node.key} className={depth === 0 ? 'mb-1' : ''}>
+        <button
+          onClick={() => {
+            if (node.chapterId) setCurrentParsedChapter(node.chapterId)
+            toggleExpanded(node.key)
+          }}
+          className={`w-full flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors ${
+            depth === 0
+              ? 'font-bold text-ink-900'
+              : 'font-semibold text-ink-800'
+          } ${isActive ? 'bg-crimson-50 text-crimson-700' : 'hover:bg-leather-50'}`}
+          style={{ paddingLeft: `${8 + depth * 16}px` }}
+        >
+          {isExpanded ? (
+            <ChevronDown size={14} className="shrink-0 text-leather-400" />
+          ) : (
+            <ChevronRight size={14} className="shrink-0 text-leather-400" />
+          )}
+          {node.label}
+        </button>
+        {isExpanded && (
+          <div className={`${depth < 2 ? 'ml-3 border-l border-leather-200 pl-2' : ''}`}>
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   console.log('[Reader] rendering condition check, readingBook:', readingBook)
 
@@ -265,55 +364,8 @@ export default function Reader() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto py-2 px-2">
-            {chapterTree.map((group) =>
-              group.key === '__ungrouped__' ? (
-                group.children.map((ch) => (
-                  <button
-                    key={ch.id}
-                    onClick={() => setCurrentParsedChapter(ch.id)}
-                    className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      currentParsedChapterId === ch.id
-                        ? 'bg-crimson-50 text-crimson-700 font-medium'
-                        : 'text-ink-600 hover:bg-leather-50'
-                    }`}
-                  >
-                    {ch.title}
-                  </button>
-                ))
-              ) : (
-                <div key={group.key} className="mb-1">
-                  <button
-                    onClick={() => toggleExpanded(group.key)}
-                    className="w-full flex items-center gap-1 px-2 py-1.5 rounded-md text-sm font-bold text-ink-900 hover:bg-leather-50 transition-colors"
-                  >
-                    {expandedGroups.has(group.key) ? (
-                      <ChevronDown size={14} className="shrink-0 text-leather-400" />
-                    ) : (
-                      <ChevronRight size={14} className="shrink-0 text-leather-400" />
-                    )}
-                    {group.label}
-                  </button>
-                  {expandedGroups.has(group.key) && (
-                    <div className="ml-3 border-l border-leather-200 pl-2">
-                      {group.children.map((ch) => (
-                        <button
-                          key={ch.id}
-                          onClick={() => setCurrentParsedChapter(ch.id)}
-                          className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                            currentParsedChapterId === ch.id
-                              ? 'bg-crimson-50 text-crimson-700 font-medium'
-                              : 'text-ink-600 hover:bg-leather-50'
-                          }`}
-                        >
-                          {ch.title}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-            {chapterTree.length === 0 && (
+            {tocTree.map((node) => renderNode(node, 0))}
+            {tocTree.length === 0 && (
               <p className="px-3 py-4 text-sm text-leather-400 italic">暂无目录</p>
             )}
           </div>
