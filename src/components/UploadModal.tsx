@@ -54,87 +54,98 @@ export default function UploadModal() {
     return btoa(chunks.join(''))
   }
 
-  const handleFile = async (file: File) => {
+  const handleFile = (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
 
     setProcessing(true)
     setUploaded({ name: file.name, size: file.size })
 
-    try {
-      const arrayBuffer = await file.arrayBuffer()
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        console.error('[Upload] empty file')
-        setUploaded(null)
-        setProcessing(false)
-        return
-      }
-
-      const id = `upload-${Date.now()}`
-      let contentText = ''
-      let parsedChapters: any[] = []
-      let fileData = ''
-      let coverImage: string | undefined
-
-      if (ext === 'txt' || ext === 'md') {
-        contentText = new TextDecoder('utf-8').decode(arrayBuffer)
-        console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
-        if (contentText) {
-          parsedChapters = parseChapters(contentText)
-          console.log('[Upload] parsed chapters:', parsedChapters.length)
-        }
-      } else if (ext === 'epub') {
-        console.log('[Upload] parsing EPUB...')
-        try {
-          const epubResult = await parseEpub(arrayBuffer)
-          contentText = epubResult.contentText
-          parsedChapters = epubResult.parsedChapters
-          coverImage = epubResult.coverImage
-          console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
-        } catch (epubErr) {
-          console.error('[Upload] EPUB parsing failed:', epubErr)
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const arrayBuffer = reader.result as ArrayBuffer
+        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+          console.error('[Upload] empty file')
           setUploaded(null)
           setProcessing(false)
           return
         }
-      } else {
-        // PDF and other binary formats — convert to base64 data URL
-        const mimeType = file.type || 'application/octet-stream'
-        const base64 = arrayBufferToBase64(arrayBuffer)
-        fileData = `data:${mimeType};base64,${base64}`
-      }
 
-      const book: Book = {
-        id,
-        title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
-        author: '上传图书',
-        coverColor: getCoverColor(ext),
-        coverImage,
-        description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
-        chapters: [
-          { id: `${id}-full`, title: '全文', sections: [] },
-        ],
-        source: 'upload',
-        fileData,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: ext,
-        uploadedAt: Date.now(),
-        contentText,
-        parsedChapters,
-        annotations: [],
-        highlights: [],
+        const id = `upload-${Date.now()}`
+        const processFile = async () => {
+          let contentText = ''
+          let parsedChapters: any[] = []
+          let fileData = ''
+          let coverImage: string | undefined
+
+          if (ext === 'txt' || ext === 'md') {
+            contentText = new TextDecoder('utf-8').decode(arrayBuffer)
+            console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
+            if (contentText) {
+              parsedChapters = parseChapters(contentText)
+              console.log('[Upload] parsed chapters:', parsedChapters.length)
+            }
+          } else if (ext === 'epub') {
+            console.log('[Upload] parsing EPUB...')
+            try {
+              const epubResult = await parseEpub(arrayBuffer)
+              contentText = epubResult.contentText
+              parsedChapters = epubResult.parsedChapters
+              coverImage = epubResult.coverImage
+              console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
+            } catch (epubErr) {
+              console.error('[Upload] EPUB parsing failed:', epubErr)
+              setUploaded(null)
+              setProcessing(false)
+              return
+            }
+          } else {
+            const mimeType = file.type || 'application/octet-stream'
+            const base64 = arrayBufferToBase64(arrayBuffer)
+            fileData = `data:${mimeType};base64,${base64}`
+          }
+
+          const book: Book = {
+            id,
+            title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
+            author: '上传图书',
+            coverColor: getCoverColor(ext),
+            coverImage,
+            description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+            chapters: [
+              { id: `${id}-full`, title: '全文', sections: [] },
+            ],
+            source: 'upload',
+            fileData,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: ext,
+            uploadedAt: Date.now(),
+            contentText,
+            parsedChapters,
+            annotations: [],
+            highlights: [],
+          }
+          console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
+          addUploadedBook(book)
+          setReadingBook(book)
+          setShowUploadModal(false)
+          navigate('/')
+        }
+        processFile()
+      } catch (err) {
+        console.error('[Upload] error processing file:', err)
+        setUploaded(null)
+        setProcessing(false)
       }
-      console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
-      addUploadedBook(book)
-      setReadingBook(book)
-      setShowUploadModal(false)
-      navigate('/')
-    } catch (err) {
-      console.error('[Upload] error processing file:', err)
+    }
+    reader.onerror = () => {
+      console.error('[Upload] FileReader error')
       setUploaded(null)
       setProcessing(false)
     }
+    reader.readAsArrayBuffer(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
