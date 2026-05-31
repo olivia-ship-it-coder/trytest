@@ -80,8 +80,35 @@ export default function UploadModal() {
           contentText = result.contentText
           parsedChapters = result.parsedChapters
           console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
+          const book: Book = {
+            id,
+            title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
+            author: '上传图书',
+            coverColor: getCoverColor(ext),
+            coverImage: result.coverImage,
+            description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+            chapters: [
+              { id: `${id}-full`, title: '全文', sections: [] },
+            ],
+            source: 'upload',
+            fileData,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: ext,
+            uploadedAt: Date.now(),
+            contentText,
+            parsedChapters,
+            annotations: [],
+            highlights: [],
+          }
+          console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
+          addUploadedBook(book)
+          setReadingBook(book)
+          setShowUploadModal(false)
+          navigate('/')
+          return
         }
-        
+
         const book: Book = {
           id,
           title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),

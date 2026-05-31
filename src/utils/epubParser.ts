@@ -1,10 +1,10 @@
 import JSZip from 'jszip'
-import { parseChapters } from './chapterParser'
 import type { ParsedChapter } from '../types'
 
 interface EpubResult {
   contentText: string
   parsedChapters: ParsedChapter[]
+  coverImage?: string
 }
 
 function stripHtml(html: string): string {
@@ -28,122 +28,158 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+function extractTitle(html: string): string | null {
+  // Try <title> tag first (usually has full book context)
+  const titleTagMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (titleTagMatch) {
+    const t = titleTagMatch[1].trim()
+    if (t) return t
+  }
+  // Fall back to first heading
+  const headingMatch = html.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i)
+  if (headingMatch) {
+    return headingMatch[1].trim()
+  }
+  return null
+}
+
 function parseOpf(opfContent: string, basePath: string) {
   const hrefs: string[] = []
-  
-  // Find spine items
+
   const spineMatch = opfContent.match(/<spine[^>]*>([\s\S]*?)<\/spine>/i)
-  if (!spineMatch) return hrefs
-  
+  if (!spineMatch) return { hrefs, coverHref: null as string | null }
+
   const idRefs: string[] = []
   const itemrefRegex = /<itemref[^>]+idref="([^"]+)"/gi
   let idMatch
   while ((idMatch = itemrefRegex.exec(spineMatch[1])) !== null) {
     idRefs.push(idMatch[1])
   }
-  
-  // Find manifest items
+
   const manifestMatch = opfContent.match(/<manifest[^>]*>([\s\S]*?)<\/manifest>/i)
-  if (!manifestMatch) return hrefs
-  
+  if (!manifestMatch) return { hrefs, coverHref: null }
+
+  let coverHref: string | null = null
   const itemMap: Record<string, string> = {}
-  const itemRegex = /<item[^>]+id="([^"]+)"[^>]+href="([^"]+)"/gi
+  const itemRegex = /<item[^>]+id="([^"]+)"[^>]+href="([^"]+)"([^>]*)>/gi
   let itemMatch
   while ((itemMatch = itemRegex.exec(manifestMatch[1])) !== null) {
     const itemId = itemMatch[1]
     const href = itemMatch[2]
+    const rest = itemMatch[3] || ''
     itemMap[itemId] = href
+    // Detect cover image: id="cover" / id="cover-image" / properties="cover-image"
+    if (/cover/i.test(itemId) || /cover-image/i.test(rest)) {
+      coverHref = basePath + href
+    }
   }
-  
+
   for (const idRef of idRefs) {
     if (itemMap[idRef]) {
       hrefs.push(basePath + itemMap[idRef])
     }
   }
-  
-  return hrefs
+
+  return { hrefs, coverHref }
+}
+
+async function extractCover(zip: JSZip, coverHref: string | null): Promise<string | undefined> {
+  if (!coverHref) return undefined
+  const file = zip.file(coverHref)
+  if (!file) return undefined
+  try {
+    const blob = await file.async('blob')
+    const ext = coverHref.split('.').pop()?.toLowerCase() || 'jpeg'
+    const mimeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+    }
+    const mime = mimeMap[ext] || 'image/jpeg'
+    const buffer = await blob.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return `data:${mime};base64,${btoa(binary)}`
+  } catch {
+    return undefined
+  }
 }
 
 export async function parseEpub(arrayBuffer: ArrayBuffer): Promise<EpubResult> {
   try {
     const zip = await JSZip.loadAsync(arrayBuffer)
-    
-    // Read container.xml
+
     const containerFile = zip.file('META-INF/container.xml')
     if (!containerFile) {
       throw new Error('Invalid EPUB: no container.xml')
     }
     const containerXml = await containerFile.async('string')
-    
-    // Find OPF path from container.xml
+
     const rootfileMatch = containerXml.match(/full-path="([^"]+)"/i)
     if (!rootfileMatch) {
       throw new Error('Invalid EPUB: no rootfile in container.xml')
     }
     const opfPath = rootfileMatch[1]
-    
-    // Read OPF file
+
     const opfFile = zip.file(opfPath)
     if (!opfFile) {
       throw new Error('Invalid EPUB: OPF file not found')
     }
     const opfContent = await opfFile.async('string')
-    
-    // Determine base path for content files
+
     const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/') + 1)
-    
-    // Get ordered content file paths
-    const contentFiles = parseOpf(opfContent, opfDir)
-    
+
+    const { hrefs: contentFiles, coverHref } = parseOpf(opfContent, opfDir)
+
     if (contentFiles.length === 0) {
       throw new Error('Invalid EPUB: no content files found')
     }
-    
-    // Read and extract text from each content file
+
+    const coverImage = await extractCover(zip, coverHref)
+
     const chapters: Array<{ title: string; text: string }> = []
-    
+
     for (const filePath of contentFiles) {
       const file = zip.file(filePath)
       if (!file) continue
-      
+
       const html = await file.async('string')
       const text = stripHtml(html)
       if (!text) continue
-      
-      // Try to extract a title from the first heading
-      const titleMatch = html.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i)
-      const title = titleMatch ? titleMatch[1].trim() : `第 ${chapters.length + 1} 章`
-      
+
+      const title = extractTitle(html) || `第 ${chapters.length + 1} 章`
+
       chapters.push({ title, text })
     }
-    
+
     if (chapters.length === 0) {
       throw new Error('No text content could be extracted from EPUB')
     }
-    
-    // Build full text and chapter structure
+
     const contentText = chapters.map((ch) => ch.text).join('\n\n')
-    
+
     let offset = 0
     const parsedChapters: ParsedChapter[] = chapters.map((ch, i) => {
       const startIndex = offset
       const endIndex = offset + ch.text.length
-      offset = endIndex + 2 // account for the '\n\n' separator
-      
+      offset = endIndex + 2
+
       return {
         id: `epub-chapter-${i}`,
         title: ch.title,
         level: 1,
         startIndex,
-        endIndex
+        endIndex,
       }
     })
-    
-    // Also try to parse sub-chapters from the full text
-    const defaultParsed = parseChapters(contentText)
-    const finalChapters = defaultParsed.length > 1 ? defaultParsed : parsedChapters
-    
-    return { contentText, parsedChapters: finalChapters }
+
+    return { contentText, parsedChapters, coverImage }
   } catch (err) {
     console.error('[EPUB Parser] error:', err)
     throw err

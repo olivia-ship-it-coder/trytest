@@ -86,6 +86,7 @@ export interface Book {
   title: string
   author: string
   coverColor: string
+  coverImage?: string
   description: string
   chapters: Chapter[]
   parsedChapters?: ParsedChapter[]

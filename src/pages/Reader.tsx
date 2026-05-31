@@ -7,7 +7,6 @@ import { useBookStore } from '@/stores/bookStore'
 import ConceptPanel from '@/components/ConceptPanel'
 import TOCSidebar from '@/components/TOCSidebar'
 import TranslationView from '@/components/TranslationView'
-import ThreeColumnReader from '@/components/ThreeColumnReader'
 
 export default function Reader() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null)
@@ -18,9 +17,11 @@ export default function Reader() {
     readingBook,
     currentChapterId,
     currentSectionId,
+    currentParsedChapterId,
     showTOC,
     setReadingBook,
     setCurrentSection,
+    setCurrentParsedChapter,
   } = useBookStore()
 
   const paragraphConceptMap = useMemo(() => {
@@ -162,30 +163,67 @@ export default function Reader() {
   }
 
   if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md' || readingBook.fileType === 'epub') && readingBook.contentText) {
-    console.log('[Reader] uploading book - show ThreeColumnReader', {
-      source: readingBook.source,
+    console.log('[Reader] uploaded book rendering:', {
       fileType: readingBook.fileType,
-      contentTextLen: readingBook.contentText?.length,
-      hasParsedChapters: !!readingBook.parsedChapters,
-      parsedChaptersCount: readingBook.parsedChapters?.length
+      contentTextLen: readingBook.contentText.length,
+      chapters: readingBook.parsedChapters?.length,
+      currentChaptId: currentParsedChapterId
     })
+    
+    const currentChapter = readingBook.parsedChapters?.find(c => c.id === currentParsedChapterId)
+    const chapterText = currentChapter && readingBook.contentText 
+      ? readingBook.contentText.slice(currentChapter.startIndex, currentChapter.endIndex)
+      : readingBook.contentText || ''
+    
     return (
-      <div className="fixed inset-x-0 bottom-0 z-30 flex flex-col"
-        style={{ top: '3.5rem' }}
-      >
-        <div className="px-6 py-3 bg-white border-b border-leather-200 flex items-center gap-3 shrink-0">
-          <button
-            onClick={() => setReadingBook(null)}
-            className="inline-flex items-center gap-1 text-xs text-leather-500 transition-colors hover:text-crimson-700"
-          >
-            <ArrowLeft size={14} />
-            返回书架
-          </button>
-          <h1 className="font-serif text-lg font-bold text-ink-900">{readingBook.title}</h1>
-          <p className="font-serif text-sm text-leather-500">{readingBook.author}</p>
+      <div className="flex h-[calc(100vh-5rem)]">
+        {/* Left panel - chapters */}
+        <div className="w-64 shrink-0 bg-white border-r border-leather-200 flex flex-col">
+          <div className="p-4 border-b border-leather-200">
+            <h3 className="font-serif font-semibold text-ink-800">目录</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {readingBook.parsedChapters?.map((ch) => (
+              <button
+                key={ch.id}
+                onClick={() => setCurrentParsedChapter(ch.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  currentParsedChapterId === ch.id
+                    ? 'bg-crimson-50 text-crimson-700'
+                    : 'text-ink-600 hover:bg-leather-50'
+                }`}
+              >
+                {ch.title}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <ThreeColumnReader key={readingBook.id} />
+
+        {/* Center panel - content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-leather-200 bg-white shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setReadingBook(null)}
+                className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
+              >
+                <ArrowLeft size={14} />返回书架
+              </button>
+              <h1 className="font-serif text-lg font-bold text-ink-900">{readingBook.title}</h1>
+            </div>
+            {currentChapter && (
+              <p className="text-sm text-leather-500 mt-1">{currentChapter.title}</p>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-3xl mx-auto">
+              {chapterText ? (
+                <p className="whitespace-pre-wrap leading-relaxed text-ink-800">{chapterText}</p>
+              ) : (
+                <p className="text-leather-400 italic">暂无文本内容</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     )

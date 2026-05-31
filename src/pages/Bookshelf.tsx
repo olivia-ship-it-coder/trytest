@@ -79,11 +79,19 @@ export default function Bookshelf() {
             style={{ animationDelay: `${i * 50}ms` }}
           >
             <div
-              className="relative flex h-40 items-end rounded-t-xl p-4"
+              className="relative flex h-40 items-end overflow-hidden rounded-t-xl"
               style={{ backgroundColor: book.coverColor }}
             >
-              <div className="absolute inset-0 rounded-t-xl bg-gradient-to-t from-black/40 to-transparent" />
-              <div className="relative z-10">
+              {book.coverImage ? (
+                <img
+                  src={book.coverImage}
+                  alt={book.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 rounded-t-xl bg-gradient-to-t from-black/40 to-transparent" />
+              )}
+              <div className="relative z-10 p-4">
                 <h3 className="font-serif text-lg font-bold leading-snug text-white drop-shadow-sm">
                   {book.title}
                 </h3>
