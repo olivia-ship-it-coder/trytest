@@ -14,6 +14,7 @@ const supportedFormats = [
 export default function UploadModal() {
   const [dragOver, setDragOver] = useState(false)
   const [uploaded, setUploaded] = useState<{ name: string; size: number } | null>(null)
+  const [processing, setProcessing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { addUploadedBook, setShowUploadModal, setReadingBook } = useBookStore()
@@ -38,119 +39,102 @@ export default function UploadModal() {
     return colorMap[ext] || '#5C4B3A'
   }
 
-  const handleFile = (file: File) => {
+  const arrayBufferToBase64 = (buf: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buf)
+    const chunks: string[] = []
+    const chunkSize = 8192
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      let binary = ''
+      const end = Math.min(i + chunkSize, bytes.length)
+      for (let j = i; j < end; j++) {
+        binary += String.fromCharCode(bytes[j])
+      }
+      chunks.push(binary)
+    }
+    return btoa(chunks.join(''))
+  }
+
+  const handleFile = async (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
 
+    setProcessing(true)
     setUploaded({ name: file.name, size: file.size })
 
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      try {
-        const arrayBuffer = e.target?.result as ArrayBuffer
-        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-          console.error('[Upload] FileReader returned empty result')
-          return
-        }
-        const bytes = new Uint8Array(arrayBuffer)
-        
-        // Convert ArrayBuffer to base64 data URL for storage
-        let binary = ''
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i])
-        }
-        const base64 = btoa(binary)
-        const mimeType = file.type || 'application/octet-stream'
-        const fileData = `data:${mimeType};base64,${base64}`
-        
-        const id = `upload-${Date.now()}`
-        let contentText = ''
-        let parsedChapters: any[] = []
-        
-        if (ext === 'txt' || ext === 'md') {
-          contentText = new TextDecoder('utf-8').decode(arrayBuffer)
-          console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
-          if (contentText) {
-            parsedChapters = parseChapters(contentText)
-            console.log('[Upload] parsed chapters:', parsedChapters.length)
-          }
-        } else if (ext === 'epub') {
-          console.log('[Upload] parsing EPUB...')
-          let epubResult: Awaited<ReturnType<typeof parseEpub>> | null = null
-          try {
-            epubResult = await parseEpub(arrayBuffer)
-            contentText = epubResult.contentText
-            parsedChapters = epubResult.parsedChapters
-            console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
-          } catch (epubErr) {
-            console.error('[Upload] EPUB parsing failed:', epubErr)
-            setUploaded(null)
-            return
-          }
-          const book: Book = {
-            id,
-            title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
-            author: '上传图书',
-            coverColor: getCoverColor(ext),
-            coverImage: epubResult?.coverImage,
-            description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
-            chapters: [
-              { id: `${id}-full`, title: '全文', sections: [] },
-            ],
-            source: 'upload',
-            fileData,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: ext,
-            uploadedAt: Date.now(),
-            contentText,
-            parsedChapters,
-            annotations: [],
-            highlights: [],
-          }
-          console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
-          addUploadedBook(book)
-          setReadingBook(book)
-          setShowUploadModal(false)
-          navigate('/')
-          return
-        }
-
-        const book: Book = {
-          id,
-          title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
-          author: '上传图书',
-          coverColor: getCoverColor(ext),
-          description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
-          chapters: [
-            { id: `${id}-full`, title: '全文', sections: [] },
-          ],
-          source: 'upload',
-          fileData,
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: ext,
-          uploadedAt: Date.now(),
-          contentText,
-          parsedChapters,
-          annotations: [],
-          highlights: [],
-        }
-        console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
-        addUploadedBook(book)
-        setReadingBook(book)
-        setShowUploadModal(false)
-        navigate('/')
-      } catch (err) {
-        console.error('[Upload] error processing file:', err)
-        // Reset upload state so user can try again
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        console.error('[Upload] empty file')
         setUploaded(null)
+        setProcessing(false)
+        return
       }
+
+      const id = `upload-${Date.now()}`
+      let contentText = ''
+      let parsedChapters: any[] = []
+      let fileData = ''
+      let coverImage: string | undefined
+
+      if (ext === 'txt' || ext === 'md') {
+        contentText = new TextDecoder('utf-8').decode(arrayBuffer)
+        console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
+        if (contentText) {
+          parsedChapters = parseChapters(contentText)
+          console.log('[Upload] parsed chapters:', parsedChapters.length)
+        }
+      } else if (ext === 'epub') {
+        console.log('[Upload] parsing EPUB...')
+        try {
+          const epubResult = await parseEpub(arrayBuffer)
+          contentText = epubResult.contentText
+          parsedChapters = epubResult.parsedChapters
+          coverImage = epubResult.coverImage
+          console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
+        } catch (epubErr) {
+          console.error('[Upload] EPUB parsing failed:', epubErr)
+          setUploaded(null)
+          setProcessing(false)
+          return
+        }
+      } else {
+        // PDF and other binary formats — convert to base64 data URL
+        const mimeType = file.type || 'application/octet-stream'
+        const base64 = arrayBufferToBase64(arrayBuffer)
+        fileData = `data:${mimeType};base64,${base64}`
+      }
+
+      const book: Book = {
+        id,
+        title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
+        author: '上传图书',
+        coverColor: getCoverColor(ext),
+        coverImage,
+        description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+        chapters: [
+          { id: `${id}-full`, title: '全文', sections: [] },
+        ],
+        source: 'upload',
+        fileData,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: ext,
+        uploadedAt: Date.now(),
+        contentText,
+        parsedChapters,
+        annotations: [],
+        highlights: [],
+      }
+      console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
+      addUploadedBook(book)
+      setReadingBook(book)
+      setShowUploadModal(false)
+      navigate('/')
+    } catch (err) {
+      console.error('[Upload] error processing file:', err)
+      setUploaded(null)
+      setProcessing(false)
     }
-    reader.onerror = (err) => {
-      console.error('[Upload] FileReader error:', err)
-    }
-    reader.readAsArrayBuffer(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -187,14 +171,20 @@ export default function UploadModal() {
         <div className="p-5">
           {uploaded ? (
             <div className="flex flex-col items-center gap-3 py-6">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
-                <Check size={24} className="text-green-600" />
+              <div className={`flex h-14 w-14 items-center justify-center rounded-full ${processing ? 'bg-leather-100' : 'bg-green-50'}`}>
+                {processing ? (
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-leather-400 border-t-transparent" />
+                ) : (
+                  <Check size={24} className="text-green-600" />
+                )}
               </div>
               <div className="text-center">
                 <p className="font-serif text-sm font-medium text-ink-800">{uploaded.name}</p>
                 <p className="text-xs text-leather-500">{formatSize(uploaded.size)}</p>
               </div>
-              <p className="text-xs text-green-600">上传成功，正在打开...</p>
+              <p className={`text-xs ${processing ? 'text-leather-500' : 'text-green-600'}`}>
+                {processing ? '正在解析，请稍候...' : '上传成功，正在打开...'}
+              </p>
             </div>
           ) : (
             <div
