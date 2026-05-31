@@ -161,4 +161,96 @@ export const libraryBooks: Book[] = [
     ],
     source: 'library',
   },
+  {
+    id: 'lacan-ecrits',
+    title: '拉康文集',
+    author: '雅克·拉康',
+    coverColor: '#2A1D3E',
+    description: '拉康最重要的文字著作集，收录了1936-1965年间的核心论文。包括《镜像阶段》《功能与领域》《主体的颠覆与欲望的辩证法》等经典文本。这些著作奠定了拉康"结构主义精神分析"的理论基础——用索绪尔语言学和列维-斯特劳斯结构人类学重读弗洛伊德。',
+    chapters: [
+      { id: 'lacan-e-1', title: '镜像阶段作为精神分析经验中自我功能构成要素', sections: [
+        { id: 'lacan-e-1a', title: '镜像阶段的形成' },
+        { id: 'lacan-e-1b', title: '自我与想象性误认' },
+      ]},
+      { id: 'lacan-e-2', title: '功能与领域', sections: [
+        { id: 'lacan-e-2a', title: '空话与实话' },
+        { id: 'lacan-e-2b', title: '无意识像语言一样结构' },
+        { id: 'lacan-e-2c', title: '象征界与语言' },
+      ]},
+      { id: 'lacan-e-3', title: '主体的颠覆与欲望的辩证法', sections: [
+        { id: 'lacan-e-3a', title: '能指的主体' },
+        { id: 'lacan-e-3b', title: '欲望的辩证法' },
+      ]},
+      { id: 'lacan-e-4', title: '关于精神病的任何先导性问题的可能答复', sections: [
+        { id: 'lacan-e-4a', title: '父名的排斥' },
+        { id: 'lacan-e-4b', title: '精神病与象征界的脱落' },
+      ]},
+      { id: 'lacan-e-5', title: '阳具象征功能的意义', sections: [
+        { id: 'lacan-e-5a', title: '阳具能指' },
+        { id: 'lacan-e-5b', title: '阉割与欲望' },
+      ]},
+    ],
+    source: 'library',
+  },
+  {
+    id: 'lacan-seminaire-xi',
+    title: '精神分析的四个基本概念',
+    author: '雅克·拉康',
+    coverColor: '#3E1F2F',
+    description: '拉康1964年的研讨班，是他理论生涯中期的巅峰之作。四个基本概念：无意识、重复、移情、驱力。拉康在此对弗洛伊德的"元心理学"进行了系统的结构主义重写，提出了"主体分裂"、"对象a"、"能指链"等核心概念。',
+    chapters: [
+      { id: 'lacan-xi-1', title: '导论：精神分析与科学', sections: [
+        { id: 'lacan-xi-1a', title: '精神分析在科学中的位置' },
+        { id: 'lacan-xi-1b', title: '主体与科学话语' },
+      ]},
+      { id: 'lacan-xi-2', title: '无意识与主体', sections: [
+        { id: 'lacan-xi-2a', title: '无意识作为语言的结构' },
+        { id: 'lacan-xi-2b', title: '主体与能指' },
+        { id: 'lacan-xi-2c', title: '分裂主体' },
+      ]},
+      { id: 'lacan-xi-3', title: '重复', sections: [
+        { id: 'lacan-xi-3a', title: '自动重复' },
+        { id: 'lacan-xi-3b', title: '重复与驱力' },
+      ]},
+      { id: 'lacan-xi-4', title: '移情', sections: [
+        { id: 'lacan-xi-4a', title: '移情的本质' },
+        { id: 'lacan-xi-4b', title: '分析场景' },
+      ]},
+      { id: 'lacan-xi-5', title: '驱力', sections: [
+        { id: 'lacan-xi-5a', title: '驱力与对象a' },
+        { id: 'lacan-xi-5b', title: '性的驱力与死亡驱力' },
+      ]},
+    ],
+    source: 'library',
+  },
+  {
+    id: 'lacan-seminaire-xx',
+    title: '再来（研讨班XX）',
+    author: '雅克·拉康',
+    coverColor: '#4A1A2E',
+    description: '拉康1972-1973年的研讨班，是他晚期思想的里程碑。标题"Encore"一语双关——既指"再来"（弗洛伊德的"再来一次"），又暗指"享乐"（jouissance）的无限重复。拉康在此重新思考了性分化、女性享乐、爱情与症状的关系，提出了"不存在性关系"的著名命题。',
+    chapters: [
+      { id: 'lacan-xx-1', title: '享乐', sections: [
+        { id: 'lacan-xx-1a', title: '快乐原则之外' },
+        { id: 'lacan-xx-1b', title: '享乐的实在' },
+      ]},
+      { id: 'lacan-xx-2', title: '知识即享乐', sections: [
+        { id: 'lacan-xx-2a', title: '知识的享乐' },
+        { id: 'lacan-xx-2b', title: '真理与结构' },
+      ]},
+      { id: 'lacan-xx-3', title: '不存在性关系', sections: [
+        { id: 'lacan-xx-3a', title: '性化的公式' },
+        { id: 'lacan-xx-3b', title: '男性享乐与女性享乐' },
+      ]},
+      { id: 'lacan-xx-4', title: '上帝与女性的享乐', sections: [
+        { id: 'lacan-xx-4a', title: '女性享乐的不可言说性' },
+        { id: 'lacan-xx-4b', title: '圣人与症状' },
+      ]},
+      { id: 'lacan-xx-5', title: '爱的公式', sections: [
+        { id: 'lacan-xx-5a', title: '爱与大他者' },
+        { id: 'lacan-xx-5b', title: '爱的替代与症状' },
+      ]},
+    ],
+    source: 'library',
+  },
 ]
