@@ -36,7 +36,7 @@ export default function Reader() {
       nodes.push(
         <span
           key={`c-${match.startIndex}`}
-          className="cursor-help border-b border-dashed border-crimon-300/50 text-crimson-700 transition-colors duration-150 hover:bg-crimson-50"
+          className="cursor-pointer border-b border-dashed border-crimon-300/50 text-crimson-700 transition-colors duration-150 hover:bg-crimson-50"
           onMouseEnter={(e) => {
             setHoveredConcept(match.concept)
             setMousePos({ x: e.clientX, y: e.clientY })
@@ -381,8 +381,11 @@ export default function Reader() {
           </div>
         </div>
         {evolutionConcept && (
-          <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-80 shrink-0 lg:block">
-            <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
+          <div className="fixed inset-0 z-40 bg-black/10 lg:bg-transparent" onClick={() => setEvolutionConcept(null)} />
+        )}
+        {evolutionConcept && (
+          <div className="fixed right-0 top-16 z-50 h-[calc(100vh-4rem)] w-80 shrink-0">
+            <div className="h-full rounded-xl border border-leather-200 bg-white shadow-book-lg overflow-hidden">
               <ConceptEvolution
                 concept={evolutionConcept}
                 onClose={() => setEvolutionConcept(null)}
@@ -477,15 +480,18 @@ export default function Reader() {
         </div>
       </div>
       {evolutionConcept && (
-        <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-72 shrink-0 lg:block">
-          <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
-            <ConceptEvolution
-              concept={evolutionConcept}
-              onClose={() => setEvolutionConcept(null)}
-            />
+          <div className="fixed inset-0 z-40 bg-black/10 lg:bg-transparent" onClick={() => setEvolutionConcept(null)} />
+        )}
+        {evolutionConcept && (
+          <div className="fixed right-0 top-16 z-50 h-[calc(100vh-4rem)] w-80 shrink-0">
+            <div className="h-full rounded-xl border border-leather-200 bg-white shadow-book-lg overflow-hidden">
+              <ConceptEvolution
+                concept={evolutionConcept}
+                onClose={() => setEvolutionConcept(null)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
       <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
     </>
     )
@@ -613,8 +619,11 @@ export default function Reader() {
               </div>
             </div>
             {evolutionConcept && (
-              <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-72 shrink-0 lg:block">
-                <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
+              <div className="fixed inset-0 z-40 bg-black/10 lg:bg-transparent" onClick={() => setEvolutionConcept(null)} />
+            )}
+            {evolutionConcept && (
+              <div className="fixed right-0 top-16 z-50 h-[calc(100vh-4rem)] w-80 shrink-0">
+                <div className="h-full rounded-xl border border-leather-200 bg-white shadow-book-lg overflow-hidden">
                   <ConceptEvolution
                     concept={evolutionConcept}
                     onClose={() => setEvolutionConcept(null)}
