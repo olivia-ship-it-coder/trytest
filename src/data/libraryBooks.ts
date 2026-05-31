@@ -253,4 +253,95 @@ export const libraryBooks: Book[] = [
     ],
     source: 'library',
   },
+  {
+    id: 'jung-red-book',
+    title: '红书（Liber Novus）',
+    author: '卡尔·荣格',
+    coverColor: '#8B1A1A',
+    description: '荣格1914-1930年间亲身记录的"与无意识的对峙"日记，是他所有理论的原型源泉。书中充满了荣格的幻觉、曼陀罗绘画、与内在人物（腓利门、以利亚等）的对话。这是20世纪最震撼的心灵文献之一，被称为"失落的心理学经典"。',
+    chapters: [
+      { id: 'jung-rb-1', title: '来者之路', sections: [
+        { id: 'jung-rb-1a', title: '重新找到灵魂' },
+        { id: 'jung-rb-1b', title: '灵魂与神灵' },
+      ]},
+      { id: 'jung-rb-2', title: '魂行', sections: [
+        { id: 'jung-rb-2a', title: '神的卑微' },
+        { id: 'jung-rb-2b', title: '神、魔与救赎' },
+      ]},
+      { id: 'jung-rb-3', title: '守司', sections: [
+        { id: 'jung-rb-3a', title: '未来的地狱之旅' },
+        { id: 'jung-rb-3b', title: '灵魂的对话' },
+      ]},
+      { id: 'jung-rb-4', title: '化身', sections: [
+        { id: 'jung-rb-4a', title: '腓利门的显现' },
+        { id: 'jung-rb-4b', title: '死者之门' },
+      ]},
+      { id: 'jung-rb-5', title: '向死者传道', sections: [
+        { id: 'jung-rb-5a', title: '刑天' },
+        { id: 'jung-rb-5b', title: '智者与愚人' },
+      ]},
+      { id: 'jung-rb-6', title: '修行者日记', sections: [
+        { id: 'jung-rb-6a', title: '十字架、曼陀罗与圆圈' },
+        { id: 'jung-rb-6b', title: '三位一体与四象征' },
+      ]},
+    ],
+    source: 'library',
+  },
+  {
+    id: 'jung-archetypes',
+    title: '原型与集体无意识',
+    author: '卡尔·荣格',
+    coverColor: '#4A6741',
+    description: '荣格关于原型和集体无意识理论的核心著作，收录了《集体无意识的原型》《母亲原型的心理学面向》《论曼陀罗象征》等经典论文。本书系统性地阐述了原型理论——从跨文化神话比较到临床梦的分析，从母亲原型的双重性到自性化的终极目标。',
+    chapters: [
+      { id: 'jung-arch-1', title: '集体无意识的原型', sections: [
+        { id: 'jung-arch-1a', title: '个人无意识与集体无意识' },
+        { id: 'jung-arch-1b', title: '原型的概念' },
+      ]},
+      { id: 'jung-arch-2', title: '母亲原型的心理学面向', sections: [
+        { id: 'jung-arch-2a', title: '母亲原型的双重性' },
+        { id: 'jung-arch-2b', title: '母亲情结' },
+      ]},
+      { id: 'jung-arch-3', title: '论曼陀罗象征', sections: [
+        { id: 'jung-arch-3a', title: '曼陀罗与自性' },
+        { id: 'jung-arch-3b', title: '临床案例中的曼陀罗' },
+      ]},
+      { id: 'jung-arch-4', title: '灵魂的现象学', sections: [
+        { id: 'jung-arch-4a', title: '灵魂与意象' },
+        { id: 'jung-arch-4b', title: '原型的中介功能' },
+      ]},
+    ],
+    source: 'library',
+  },
+  {
+    id: 'jung-types-book',
+    title: '心理类型',
+    author: '卡尔·荣格',
+    coverColor: '#2C5F7C',
+    description: '荣格1921年的巨著，全面阐述了内倾/外倾两种态度和思维/情感/感觉/直觉四种功能。荣格从古代—中世纪思想史、席勒的诗学、尼采的悲剧论、雅各布森的唯灵论与实用主义之争等广泛视角，追溯了类型学的哲学史根源。MBTI即源自此书的简化。',
+    chapters: [
+      { id: 'jung-tp-1', title: '古代-中世纪类型问题', sections: [
+        { id: 'jung-tp-1a', title: '诺斯替教与德尔图良' },
+        { id: 'jung-tp-1b', title: '奥利金与教父之争' },
+      ]},
+      { id: 'jung-tp-2', title: '席勒的类型观', sections: [
+        { id: 'jung-tp-2a', title: '感伤与素朴' },
+        { id: 'jung-tp-2b', title: '理想与现实' },
+      ]},
+      { id: 'jung-tp-3', title: '尼采与雅各布森', sections: [
+        { id: 'jung-tp-3a', title: '日神与酒神' },
+        { id: 'jung-tp-3b', title: '唯灵论与实用主义' },
+      ]},
+      { id: 'jung-tp-4', title: '内倾与外倾', sections: [
+        { id: 'jung-tp-4a', title: '两种态度的定义' },
+        { id: 'jung-tp-4b', title: '态度与无意识的补偿' },
+      ]},
+      { id: 'jung-tp-5', title: '四种功能的描述', sections: [
+        { id: 'jung-tp-5a', title: '思维与情感' },
+        { id: 'jung-tp-5b', title: '感觉与直觉' },
+        { id: 'jung-tp-5c', title: '主导功能与劣势功能' },
+      ]},
+    ],
+    source: 'library',
+  },
 ]
