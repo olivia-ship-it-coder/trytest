@@ -161,8 +161,10 @@ export default function Reader() {
 
   if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md') && readingBook.contentText) {
     return (
-      <div className="h-[calc(100vh-5rem)]">
-        <div className="px-6 py-3 bg-white border-b border-leather-200 flex items-center gap-3">
+      <div className="fixed inset-x-0 bottom-0 z-30 flex flex-col"
+        style={{ top: '3.5rem' }}
+      >
+        <div className="px-6 py-3 bg-white border-b border-leather-200 flex items-center gap-3 shrink-0">
           <button
             onClick={() => setReadingBook(null)}
             className="inline-flex items-center gap-1 text-xs text-leather-500 transition-colors hover:text-crimson-700"
@@ -173,7 +175,9 @@ export default function Reader() {
           <h1 className="font-serif text-lg font-bold text-ink-900">{readingBook.title}</h1>
           <p className="font-serif text-sm text-leather-500">{readingBook.author}</p>
         </div>
-        <ThreeColumnReader />
+        <div className="flex-1 overflow-hidden">
+          <ThreeColumnReader />
+        </div>
       </div>
     )
   }
