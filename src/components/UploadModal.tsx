@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Upload, X, FileText, Check } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Book } from '@/types'
@@ -13,6 +14,7 @@ export default function UploadModal() {
   const [dragOver, setDragOver] = useState(false)
   const [uploaded, setUploaded] = useState<{ name: string; size: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
   const { addUploadedBook, setShowUploadModal, setReadingBook } = useBookStore()
 
   const getFileExtension = (filename: string): string => {
@@ -35,16 +37,15 @@ export default function UploadModal() {
     return colorMap[ext] || '#5C4B3A'
   }
 
-  const extractTextFromDataUrl = (dataUrl: string, ext: string): string => {
+  const extractTextFromDataUrl = (dataUrl: string): string => {
     try {
       const base64 = dataUrl.split(',')[1]
-      const decoded = atob(base64)
-      
-      if (ext === 'txt' || ext === 'md') {
-        return decoded
+      const binaryStr = atob(base64)
+      const bytes = new Uint8Array(binaryStr.length)
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i)
       }
-      
-      return ''
+      return new TextDecoder('utf-8').decode(bytes)
     } catch {
       return ''
     }
@@ -65,7 +66,7 @@ export default function UploadModal() {
       let parsedChapters: any[] = []
       
       if (ext === 'txt' || ext === 'md') {
-        contentText = extractTextFromDataUrl(dataUrl, ext)
+        contentText = extractTextFromDataUrl(dataUrl)
         if (contentText) {
           parsedChapters = parseChapters(contentText)
         }
@@ -94,6 +95,7 @@ export default function UploadModal() {
       addUploadedBook(book)
       setReadingBook(book)
       setShowUploadModal(false)
+      navigate('/')
     }
     reader.readAsDataURL(file)
   }

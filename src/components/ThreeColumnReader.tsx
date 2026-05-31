@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Highlighter, MessageSquare, Trash2, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Highlighter, MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useBookStore } from '@/stores/bookStore'
 import type { Annotation, Highlight } from '@/types'
 
@@ -11,7 +11,7 @@ const HIGHLIGHT_COLORS = [
 ]
 
 export default function ThreeColumnReader() {
-  const { readingBook, currentParsedChapterId, setCurrentParsedChapter, addAnnotation, removeAnnotation, addHighlight, removeHighlight, books } = useBookStore()
+  const { readingBook, currentParsedChapterId, setCurrentParsedChapter, addAnnotation, removeAnnotation, addHighlight, removeHighlight } = useBookStore()
   const [showLeftPanel, setShowLeftPanel] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [selectedText, setSelectedText] = useState('')
@@ -35,8 +35,11 @@ export default function ThreeColumnReader() {
     : readingBook.contentText || ''
 
   const handleTextSelection = () => {
-    const selection = window.getSelection()
-    if (selection && selection.toString().trim().length > 0 && contentRef.current?.contains(selection.anchorNode)) {
+    try {
+      const selection = window.getSelection()
+      if (!selection || selection.toString().trim().length === 0 || !contentRef.current?.contains(selection.anchorNode)) {
+        return
+      }
       const range = selection.getRangeAt(0)
       const textContent = contentRef.current.textContent || ''
       
@@ -48,6 +51,8 @@ export default function ThreeColumnReader() {
         setSelectionRange({ start, end: start + rangeText.length })
         setShowToolbar(true)
       }
+    } catch {
+      // ignore selection errors
     }
   }
 

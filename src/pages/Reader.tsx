@@ -176,7 +176,7 @@ export default function Reader() {
           <p className="font-serif text-sm text-leather-500">{readingBook.author}</p>
         </div>
         <div className="flex-1 overflow-hidden">
-          <ThreeColumnReader />
+          <ThreeColumnReader key={readingBook.id} />
         </div>
       </div>
     )
