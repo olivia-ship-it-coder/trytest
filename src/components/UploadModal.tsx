@@ -76,16 +76,23 @@ export default function UploadModal() {
           }
         } else if (ext === 'epub') {
           console.log('[Upload] parsing EPUB...')
-          const result = await parseEpub(arrayBuffer)
-          contentText = result.contentText
-          parsedChapters = result.parsedChapters
-          console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
+          let epubResult: Awaited<ReturnType<typeof parseEpub>> | null = null
+          try {
+            epubResult = await parseEpub(arrayBuffer)
+            contentText = epubResult.contentText
+            parsedChapters = epubResult.parsedChapters
+            console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
+          } catch (epubErr) {
+            console.error('[Upload] EPUB parsing failed:', epubErr)
+            setUploaded(null)
+            return
+          }
           const book: Book = {
             id,
             title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
             author: '上传图书',
             coverColor: getCoverColor(ext),
-            coverImage: result.coverImage,
+            coverImage: epubResult?.coverImage,
             description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
             chapters: [
               { id: `${id}-full`, title: '全文', sections: [] },

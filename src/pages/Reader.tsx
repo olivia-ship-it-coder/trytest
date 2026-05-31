@@ -334,19 +334,23 @@ export default function Reader() {
     )
   }
 
-  if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md' || readingBook.fileType === 'epub') && readingBook.contentText) {
+  // ── Uploaded book with text support (TXT/MD/EPUB) ──
+  if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md' || readingBook.fileType === 'epub')) {
+    const contentText = readingBook.contentText || ''
+    const chapters = readingBook.parsedChapters || []
+
     console.log('[Reader] uploaded book rendering:', {
       fileType: readingBook.fileType,
-      contentTextLen: readingBook.contentText.length,
-      chapters: readingBook.parsedChapters?.length,
-      currentChaptId: currentParsedChapterId
+      contentTextLen: contentText.length,
+      chaptersCount: chapters.length,
+      currentChaptId: currentParsedChapterId,
     })
-    
-    const currentChapter = readingBook.parsedChapters?.find(c => c.id === currentParsedChapterId)
-    const chapterText = currentChapter && readingBook.contentText 
-      ? readingBook.contentText.slice(currentChapter.startIndex, currentChapter.endIndex)
-      : readingBook.contentText || ''
-    
+
+    const currentChapter = chapters.find((c) => c.id === currentParsedChapterId)
+    const chapterText = currentChapter && contentText
+      ? contentText.slice(currentChapter.startIndex, currentChapter.endIndex)
+      : contentText || ''
+
     return (
       <div className="flex h-[calc(100vh-5rem)]">
         {/* Left panel - chapters (collapsible tree) */}
@@ -365,7 +369,7 @@ export default function Reader() {
           </div>
           <div className="flex-1 overflow-y-auto py-2 px-2">
             {tocTree.map((node) => renderNode(node, 0))}
-            {tocTree.length === 0 && (
+            {tocTree.length === 0 && chapters.length === 0 && (
               <p className="px-3 py-4 text-sm text-leather-400 italic">暂无目录</p>
             )}
           </div>
@@ -401,7 +405,9 @@ export default function Reader() {
               {chapterText ? (
                 <p className="whitespace-pre-wrap leading-relaxed text-ink-800">{chapterText}</p>
               ) : (
-                <p className="text-leather-400 italic">暂无文本内容</p>
+                <p className="text-leather-400 italic">
+                  {contentText ? '请选择章节以查看内容' : '暂无文本内容'}
+                </p>
               )}
             </div>
           </div>
