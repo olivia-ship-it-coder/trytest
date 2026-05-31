@@ -144,53 +144,52 @@ export default function UploadModal() {
     }
   }
 
-  const handleFile = async (file: File) => {
+  const readFileAsBuffer = (file: File, cb: (buf: ArrayBuffer | null) => void) => {
+    const r1 = new FileReader()
+    r1.onload = () => cb(r1.result as ArrayBuffer)
+    r1.onerror = () => {
+      console.warn('[Upload] readAsArrayBuffer failed:', r1.error?.name, r1.error?.message)
+      const r2 = new FileReader()
+      r2.onload = () => {
+        const text = r2.result as string
+        const buf = new ArrayBuffer(text.length)
+        const view = new Uint8Array(buf)
+        for (let i = 0; i < text.length; i++) {
+          view[i] = text.charCodeAt(i) & 0xff
+        }
+        cb(buf)
+      }
+      r2.onerror = () => {
+        console.error('[Upload] readAsText also failed:', r2.error?.name, r2.error?.message)
+        cb(null)
+      }
+      r2.readAsText(file, 'iso-8859-1')
+    }
+    r1.readAsArrayBuffer(file)
+  }
+
+  const handleFile = (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
-
-    // Try multiple reading strategies
-    const readFile = (): Promise<ArrayBuffer | null> => {
-      return new Promise((resolve) => {
-        // Strategy A: readAsArrayBuffer
-        const r1 = new FileReader()
-        r1.onload = () => resolve(r1.result as ArrayBuffer)
-        r1.onerror = () => {
-          // Strategy B: readAsText with ISO-8859-1 (byte-preserving encoding)
-          const r2 = new FileReader()
-          r2.onload = () => {
-            const text = r2.result as string
-            const buf = new ArrayBuffer(text.length)
-            const view = new Uint8Array(buf)
-            for (let i = 0; i < text.length; i++) {
-              view[i] = text.charCodeAt(i) & 0xff
-            }
-            resolve(buf)
-          }
-          r2.onerror = () => resolve(null)
-          r2.readAsText(file, 'iso-8859-1')
-        }
-        r1.readAsArrayBuffer(file)
-      })
-    }
-
-    const arrayBuffer = await readFile()
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      console.error('[Upload] unable to read file')
-      setUploaded(null)
-      setProcessing(false)
-      return
-    }
 
     setProcessing(true)
     setUploaded({ name: file.name, size: file.size })
 
-    try {
-      handleFileData(arrayBuffer, file)
-    } catch (err) {
-      console.error('[Upload] error processing file:', err)
-      setUploaded(null)
-      setProcessing(false)
-    }
+    readFileAsBuffer(file, (arrayBuffer) => {
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        console.error('[Upload] unable to read file')
+        setUploaded(null)
+        setProcessing(false)
+        return
+      }
+      try {
+        handleFileData(arrayBuffer, file)
+      } catch (err) {
+        console.error('[Upload] error processing file:', err)
+        setUploaded(null)
+        setProcessing(false)
+      }
+    })
   }
 
   const handleDrop = (e: React.DragEvent) => {
