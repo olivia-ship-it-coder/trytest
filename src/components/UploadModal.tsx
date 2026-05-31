@@ -54,37 +54,15 @@ export default function UploadModal() {
     return btoa(chunks.join(''))
   }
 
-  const handleFile = async (file: File) => {
+  const handleFileData = (arrayBuffer: ArrayBuffer, file: File) => {
     const ext = getFileExtension(file.name)
-    if (!supportedFormats.includes(ext)) return
-
-    setProcessing(true)
-    setUploaded({ name: file.name, size: file.size })
+    const id = `upload-${Date.now()}`
+    let contentText = ''
+    let parsedChapters: any[] = []
+    let fileData = ''
+    let coverImage: string | undefined
 
     try {
-      // Use createObjectURL + fetch for maximum sandbox compatibility
-      const url = URL.createObjectURL(file)
-      let arrayBuffer: ArrayBuffer | null = null
-      try {
-        const response = await fetch(url)
-        arrayBuffer = await response.arrayBuffer()
-      } finally {
-        URL.revokeObjectURL(url)
-      }
-
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        console.error('[Upload] empty file')
-        setUploaded(null)
-        setProcessing(false)
-        return
-      }
-
-      const id = `upload-${Date.now()}`
-      let contentText = ''
-      let parsedChapters: any[] = []
-      let fileData = ''
-      let coverImage: string | undefined
-
       if (ext === 'txt' || ext === 'md') {
         contentText = new TextDecoder('utf-8').decode(arrayBuffer)
         console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
@@ -94,18 +72,43 @@ export default function UploadModal() {
         }
       } else if (ext === 'epub') {
         console.log('[Upload] parsing EPUB...')
-        try {
-          const epubResult = await parseEpub(arrayBuffer)
-          contentText = epubResult.contentText
-          parsedChapters = epubResult.parsedChapters
-          coverImage = epubResult.coverImage
-          console.log('[Upload] EPUB parsed:', { contentTextLen: contentText.length, chapters: parsedChapters.length })
-        } catch (epubErr) {
+        // EPUB parsing must happen synchronously here; parseEpub is async,
+        // so we'll call it and handle completion in the promise
+        setProcessing(true)
+        setUploaded({ name: file.name, size: file.size })
+        parseEpub(arrayBuffer).then((epubResult) => {
+          const book: Book = {
+            id,
+            title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
+            author: '上传图书',
+            coverColor: getCoverColor(ext),
+            coverImage: epubResult.coverImage,
+            description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+            chapters: [
+              { id: `${id}-full`, title: '全文', sections: [] },
+            ],
+            source: 'upload',
+            fileData: '',
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: ext,
+            uploadedAt: Date.now(),
+            contentText: epubResult.contentText,
+            parsedChapters: epubResult.parsedChapters,
+            annotations: [],
+            highlights: [],
+          }
+          console.log('[Upload] book created:', { title: book.title, contentTextLen: epubResult.contentText.length })
+          addUploadedBook(book)
+          setReadingBook(book)
+          setShowUploadModal(false)
+          navigate('/')
+        }).catch((epubErr) => {
           console.error('[Upload] EPUB parsing failed:', epubErr)
           setUploaded(null)
           setProcessing(false)
-          return
-        }
+        })
+        return
       } else {
         const mimeType = file.type || 'application/octet-stream'
         const base64 = arrayBufferToBase64(arrayBuffer)
@@ -143,6 +146,36 @@ export default function UploadModal() {
       setUploaded(null)
       setProcessing(false)
     }
+  }
+
+  const handleFile = (file: File) => {
+    const ext = getFileExtension(file.name)
+    if (!supportedFormats.includes(ext)) return
+
+    // For EPUB, defer state update to the async path
+    if (ext === 'epub') {
+      const reader = new FileReader()
+      reader.onload = () => handleFileData(reader.result as ArrayBuffer, file)
+      reader.onerror = () => {
+        console.error('[Upload] FileReader error')
+        setUploaded(null)
+        setProcessing(false)
+      }
+      reader.readAsArrayBuffer(file)
+      return
+    }
+
+    // For non-EPUB, process synchronously
+    setProcessing(true)
+    setUploaded({ name: file.name, size: file.size })
+    const reader = new FileReader()
+    reader.onload = () => handleFileData(reader.result as ArrayBuffer, file)
+    reader.onerror = () => {
+      console.error('[Upload] FileReader error')
+      setUploaded(null)
+      setProcessing(false)
+    }
+    reader.readAsArrayBuffer(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
