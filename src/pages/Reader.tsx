@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { BookOpen, Lightbulb, Bookmark, ArrowLeft, FileText } from 'lucide-react'
+import { BookOpen, Lightbulb, Bookmark, ArrowLeft, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { paragraphs } from '@/data/paragraphs'
 import { concepts } from '@/data/concepts'
 import { sectionToTranslation } from '@/data/sectionTranslationMap'
@@ -22,6 +22,7 @@ export default function Reader() {
     setReadingBook,
     setCurrentSection,
     setCurrentParsedChapter,
+    toggleTOC,
   } = useBookStore()
 
   const paragraphConceptMap = useMemo(() => {
@@ -177,9 +178,9 @@ export default function Reader() {
     
     return (
       <div className="flex h-[calc(100vh-5rem)]">
-        {/* Left panel - chapters */}
-        <div className="w-64 shrink-0 bg-white border-r border-leather-200 flex flex-col">
-          <div className="p-4 border-b border-leather-200">
+        {/* Left panel - chapters (collapsible) */}
+        <div className={`${showTOC ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden shrink-0 bg-white border-r border-leather-200 flex flex-col`}>
+          <div className="p-4 border-b border-leather-200 shrink-0">
             <h3 className="font-serif font-semibold text-ink-800">目录</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
@@ -203,6 +204,13 @@ export default function Reader() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-leather-200 bg-white shrink-0">
             <div className="flex items-center gap-3">
+              <button
+                onClick={toggleTOC}
+                className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
+                title={showTOC ? '收起目录' : '展开目录'}
+              >
+                {showTOC ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+              </button>
               <button
                 onClick={() => setReadingBook(null)}
                 className="inline-flex items-center gap-1 text-xs text-leather-500 hover:text-crimson-700"
