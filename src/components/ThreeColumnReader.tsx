@@ -12,6 +12,16 @@ const HIGHLIGHT_COLORS = [
 
 export default function ThreeColumnReader() {
   const { readingBook, currentParsedChapterId, setCurrentParsedChapter, addAnnotation, removeAnnotation, addHighlight, removeHighlight } = useBookStore()
+  
+  console.log('[ThreeColumnReader] rendering with:', {
+    readingBookTitle: readingBook?.title,
+    hasContentText: !!readingBook?.contentText,
+    contentTextLen: readingBook?.contentText?.length,
+    hasParsedChapters: !!readingBook?.parsedChapters,
+    parsedChaptersCount: readingBook?.parsedChapters?.length,
+    currentParsedChapterId
+  })
+  
   const [showLeftPanel, setShowLeftPanel] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [selectedText, setSelectedText] = useState('')

@@ -44,6 +44,8 @@ export default function Reader() {
 
   const bookContentWidth = showTOC ? 'ml-64' : 'ml-0'
 
+  console.log('[Reader] rendering condition check, readingBook:', readingBook)
+
   if (!readingBook) {
     return (
       <div className="animate-fade-in flex gap-8">
@@ -160,6 +162,13 @@ export default function Reader() {
   }
 
   if (readingBook.source === 'upload' && (readingBook.fileType === 'txt' || readingBook.fileType === 'md') && readingBook.contentText) {
+    console.log('[Reader] uploading book - show ThreeColumnReader', {
+      source: readingBook.source,
+      fileType: readingBook.fileType,
+      contentTextLen: readingBook.contentText?.length,
+      hasParsedChapters: !!readingBook.parsedChapters,
+      parsedChaptersCount: readingBook.parsedChapters?.length
+    })
     return (
       <div className="fixed inset-x-0 bottom-0 z-30 flex flex-col"
         style={{ top: '3.5rem' }}

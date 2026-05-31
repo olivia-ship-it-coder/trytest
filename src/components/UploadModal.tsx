@@ -45,53 +45,67 @@ export default function UploadModal() {
 
     const reader = new FileReader()
     reader.onload = (e) => {
-      const arrayBuffer = e.target?.result as ArrayBuffer
-      const bytes = new Uint8Array(arrayBuffer)
-      
-      // Convert ArrayBuffer to base64 data URL for storage
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i])
-      }
-      const base64 = btoa(binary)
-      const mimeType = file.type || 'application/octet-stream'
-      const fileData = `data:${mimeType};base64,${base64}`
-      
-      const id = `upload-${Date.now()}`
-      let contentText = ''
-      let parsedChapters: any[] = []
-      
-      if (ext === 'txt' || ext === 'md') {
-        contentText = new TextDecoder('utf-8').decode(arrayBuffer)
-        if (contentText) {
-          parsedChapters = parseChapters(contentText)
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer
+        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+          console.error('[Upload] FileReader returned empty result')
+          return
         }
+        const bytes = new Uint8Array(arrayBuffer)
+        
+        // Convert ArrayBuffer to base64 data URL for storage
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i])
+        }
+        const base64 = btoa(binary)
+        const mimeType = file.type || 'application/octet-stream'
+        const fileData = `data:${mimeType};base64,${base64}`
+        
+        const id = `upload-${Date.now()}`
+        let contentText = ''
+        let parsedChapters: any[] = []
+        
+        if (ext === 'txt' || ext === 'md') {
+          contentText = new TextDecoder('utf-8').decode(arrayBuffer)
+          console.log('[Upload] decoded text length:', contentText.length, 'ext:', ext)
+          if (contentText) {
+            parsedChapters = parseChapters(contentText)
+            console.log('[Upload] parsed chapters:', parsedChapters.length)
+          }
+        }
+        
+        const book: Book = {
+          id,
+          title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
+          author: '上传图书',
+          coverColor: getCoverColor(ext),
+          description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
+          chapters: [
+            { id: `${id}-full`, title: '全文', sections: [] },
+          ],
+          source: 'upload',
+          fileData,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: ext,
+          uploadedAt: Date.now(),
+          contentText,
+          parsedChapters,
+          annotations: [],
+          highlights: [],
+        }
+        console.log('[Upload] book created:', { title: book.title, contentTextLen: contentText.length })
+        addUploadedBook(book)
+        setReadingBook(book)
+        setShowUploadModal(false)
+        navigate('/')
+      } catch (err) {
+        console.error('[Upload] error processing file:', err)
       }
-      
-      const book: Book = {
-        id,
-        title: file.name.replace(new RegExp(`\\.${ext}$`, 'i'), ''),
-        author: '上传图书',
-        coverColor: getCoverColor(ext),
-        description: `上传时间：${new Date().toLocaleDateString('zh-CN')}`,
-        chapters: [
-          { id: `${id}-full`, title: '全文', sections: [] },
-        ],
-        source: 'upload',
-        fileData,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: ext,
-        uploadedAt: Date.now(),
-        contentText,
-        parsedChapters,
-        annotations: [],
-        highlights: [],
-      }
-      addUploadedBook(book)
-      setReadingBook(book)
-      setShowUploadModal(false)
-      navigate('/')
+    }
+    reader.onerror = (err) => {
+      console.error('[Upload] FileReader error:', err)
     }
     reader.readAsArrayBuffer(file)
   }
