@@ -144,54 +144,27 @@ export default function UploadModal() {
     }
   }
 
-  const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
-    return new Promise((resolve, reject) => {
-      // Strategy 1: FileReader (most compatible)
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as ArrayBuffer)
-      reader.onerror = () => {
-        // Strategy 2: createObjectURL + synchronous XHR (works in most sandboxes)
-        try {
-          const url = URL.createObjectURL(file)
-          const xhr = new XMLHttpRequest()
-          xhr.open('GET', url, false)
-          xhr.overrideMimeType('text/plain; charset=x-user-defined')
-          xhr.send()
-          URL.revokeObjectURL(url)
-          if (xhr.status === 0 || xhr.status === 200) {
-            const text = xhr.responseText
-            const buf = new ArrayBuffer(text.length)
-            const view = new Uint8Array(buf)
-            for (let i = 0; i < text.length; i++) {
-              view[i] = text.charCodeAt(i) & 0xff
-            }
-            resolve(buf)
-          } else {
-            reject(new Error('XHR failed: ' + xhr.status))
-          }
-        } catch (xhrErr) {
-          reject(xhrErr)
-        }
-      }
-      reader.readAsArrayBuffer(file)
-    })
-  }
-
   const handleFile = async (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
+
+    // Read file BEFORE any React state updates
+    const reader = new FileReader()
+    const arrayBuffer = await new Promise<ArrayBuffer | null>((resolve) => {
+      reader.onload = () => resolve(reader.result as ArrayBuffer)
+      reader.onerror = () => resolve(null)
+      reader.readAsArrayBuffer(file)
+    })
+
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      console.error('[Upload] unable to read file')
+      return
+    }
 
     setProcessing(true)
     setUploaded({ name: file.name, size: file.size })
 
     try {
-      const arrayBuffer = await readFileAsArrayBuffer(file)
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        console.error('[Upload] empty file')
-        setUploaded(null)
-        setProcessing(false)
-        return
-      }
       handleFileData(arrayBuffer, file)
     } catch (err) {
       console.error('[Upload] error processing file:', err)
