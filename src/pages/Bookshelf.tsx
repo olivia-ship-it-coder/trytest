@@ -9,6 +9,7 @@ export default function Bookshelf() {
   const navigate = useNavigate()
   const { books, setReadingBook, setShowSearchModal, setShowUploadModal, removeBook } = useBookStore()
   const [filter, setFilter] = useState<'all' | 'library' | 'upload'>('all')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return filter === 'all' ? books : books.filter((b) => b.source === filter)
@@ -126,14 +127,13 @@ export default function Bookshelf() {
                   <BookOpen size={12} />
                   阅读
                 </button>
-                {book.source === 'upload' && (
-                  <button
-                    onClick={() => removeBook(book.id)}
+                <button
+                    onClick={() => setConfirmDeleteId(book.id)}
                     className="rounded-lg border border-leather-200 px-2.5 py-1.5 text-leather-400 transition-colors hover:border-red-200 hover:text-red-500"
+                    title="删除此书"
                   >
                     <Trash2 size={12} />
                   </button>
-                )}
               </div>
             </div>
           </div>
@@ -160,6 +160,43 @@ export default function Bookshelf() {
 
       {useBookStore.getState().showSearchModal && <SearchModal />}
       {useBookStore.getState().showUploadModal && <UploadModal />}
+
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="w-80 rounded-xl border border-leather-200 bg-white p-6 shadow-book-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-serif text-base font-bold text-ink-900">删除图书</h3>
+            <p className="mt-2 text-sm leading-relaxed text-leather-600">
+              确定要删除「{books.find((b) => b.id === confirmDeleteId)?.title}」吗？
+              {books.find((b) => b.id === confirmDeleteId)?.source === 'library'
+                ? '\n下次刷新书架时该书籍会重新出现。'
+                : '\n此书将从书架中永久移除。'}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="rounded-lg border border-leather-200 px-4 py-1.5 text-xs font-medium text-leather-600 transition-colors hover:bg-leather-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  removeBook(confirmDeleteId)
+                  setConfirmDeleteId(null)
+                }}
+                className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
