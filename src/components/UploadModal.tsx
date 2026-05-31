@@ -37,20 +37,6 @@ export default function UploadModal() {
     return colorMap[ext] || '#5C4B3A'
   }
 
-  const extractTextFromDataUrl = (dataUrl: string): string => {
-    try {
-      const base64 = dataUrl.split(',')[1]
-      const binaryStr = atob(base64)
-      const bytes = new Uint8Array(binaryStr.length)
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i)
-      }
-      return new TextDecoder('utf-8').decode(bytes)
-    } catch {
-      return ''
-    }
-  }
-
   const handleFile = (file: File) => {
     const ext = getFileExtension(file.name)
     if (!supportedFormats.includes(ext)) return
@@ -59,14 +45,24 @@ export default function UploadModal() {
 
     const reader = new FileReader()
     reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
-      const id = `upload-${Date.now()}`
+      const arrayBuffer = e.target?.result as ArrayBuffer
+      const bytes = new Uint8Array(arrayBuffer)
       
+      // Convert ArrayBuffer to base64 data URL for storage
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const base64 = btoa(binary)
+      const mimeType = file.type || 'application/octet-stream'
+      const fileData = `data:${mimeType};base64,${base64}`
+      
+      const id = `upload-${Date.now()}`
       let contentText = ''
       let parsedChapters: any[] = []
       
       if (ext === 'txt' || ext === 'md') {
-        contentText = extractTextFromDataUrl(dataUrl)
+        contentText = new TextDecoder('utf-8').decode(arrayBuffer)
         if (contentText) {
           parsedChapters = parseChapters(contentText)
         }
@@ -82,7 +78,7 @@ export default function UploadModal() {
           { id: `${id}-full`, title: '全文', sections: [] },
         ],
         source: 'upload',
-        fileData: dataUrl,
+        fileData,
         fileName: file.name,
         fileSize: file.size,
         fileType: ext,
@@ -97,7 +93,7 @@ export default function UploadModal() {
       setShowUploadModal(false)
       navigate('/')
     }
-    reader.readAsDataURL(file)
+    reader.readAsArrayBuffer(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
