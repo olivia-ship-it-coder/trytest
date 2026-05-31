@@ -5,6 +5,7 @@ import { concepts } from '@/data/concepts'
 import { sectionToTranslation } from '@/data/sectionTranslationMap'
 import { useBookStore } from '@/stores/bookStore'
 import ConceptPanel from '@/components/ConceptPanel'
+import ConceptEvolution from '@/components/ConceptEvolution'
 import ConceptTooltip from '@/components/ConceptTooltip'
 import TOCSidebar from '@/components/TOCSidebar'
 import TranslationView from '@/components/TranslationView'
@@ -18,6 +19,7 @@ export default function Reader() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [hoveredConcept, setHoveredConcept] = useState<Concept | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+  const [evolutionConcept, setEvolutionConcept] = useState<Concept | null>(null)
 
   const renderMarkedText = (text: string) => {
     if (!text) return null
@@ -46,6 +48,7 @@ export default function Reader() {
             setHoveredConcept(null)
             setMousePos(null)
           }}
+          onClick={() => setEvolutionConcept(match.concept)}
         >
           {match.concept.name}
         </span>
@@ -377,6 +380,16 @@ export default function Reader() {
             </div>
           </div>
         </div>
+        {evolutionConcept && (
+          <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-80 shrink-0 lg:block">
+            <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
+              <ConceptEvolution
+                concept={evolutionConcept}
+                onClose={() => setEvolutionConcept(null)}
+              />
+            </div>
+          </div>
+        )}
         <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
       </div>
     </>
@@ -463,6 +476,16 @@ export default function Reader() {
           </div>
         </div>
       </div>
+      {evolutionConcept && (
+        <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-72 shrink-0 lg:block">
+          <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
+            <ConceptEvolution
+              concept={evolutionConcept}
+              onClose={() => setEvolutionConcept(null)}
+            />
+          </div>
+        </div>
+      )}
       <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
     </>
     )
@@ -589,6 +612,16 @@ export default function Reader() {
                 </div>
               </div>
             </div>
+            {evolutionConcept && (
+              <div className="fixed right-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-72 shrink-0 lg:block">
+                <div className="h-full rounded-xl border border-leather-200 bg-white/95 shadow-book-lg overflow-hidden backdrop-blur-sm">
+                  <ConceptEvolution
+                    concept={evolutionConcept}
+                    onClose={() => setEvolutionConcept(null)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

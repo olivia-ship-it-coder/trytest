@@ -17,6 +17,14 @@ export interface Concept {
   source: string
 }
 
+export interface EvolutionStage {
+  philosopher: string
+  era: string
+  year: string
+  summary: string
+  keyText?: string
+}
+
 export interface Paragraph {
   id: string
   chapter: string
