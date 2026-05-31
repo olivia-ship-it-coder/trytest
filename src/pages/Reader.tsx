@@ -5,14 +5,60 @@ import { concepts } from '@/data/concepts'
 import { sectionToTranslation } from '@/data/sectionTranslationMap'
 import { useBookStore } from '@/stores/bookStore'
 import ConceptPanel from '@/components/ConceptPanel'
+import ConceptTooltip from '@/components/ConceptTooltip'
 import TOCSidebar from '@/components/TOCSidebar'
 import TranslationView from '@/components/TranslationView'
+import { findConceptMatches } from '@/utils/conceptMarker'
+import type { Concept } from '@/types'
 
 export default function Reader() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(true)
   const [activeParagraph, setActiveParagraph] = useState<string | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [hoveredConcept, setHoveredConcept] = useState<Concept | null>(null)
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+
+  const renderMarkedText = (text: string) => {
+    if (!text) return null
+    const matches = findConceptMatches(text, concepts)
+    if (matches.length === 0) return text
+
+    const nodes: React.ReactNode[] = []
+    let lastEnd = 0
+
+    for (const match of matches) {
+      if (match.startIndex > lastEnd) {
+        nodes.push(text.slice(lastEnd, match.startIndex))
+      }
+      nodes.push(
+        <span
+          key={`c-${match.startIndex}`}
+          className="cursor-help border-b border-dashed border-crimon-300/50 text-crimson-700 transition-colors duration-150 hover:bg-crimson-50"
+          onMouseEnter={(e) => {
+            setHoveredConcept(match.concept)
+            setMousePos({ x: e.clientX, y: e.clientY })
+          }}
+          onMouseMove={(e) => {
+            setMousePos({ x: e.clientX, y: e.clientY })
+          }}
+          onMouseLeave={() => {
+            setHoveredConcept(null)
+            setMousePos(null)
+          }}
+        >
+          {match.concept.name}
+        </span>
+      )
+      lastEnd = match.endIndex
+    }
+
+    if (lastEnd < text.length) {
+      nodes.push(text.slice(lastEnd))
+    }
+
+    return nodes
+  }
 
   const toggleExpanded = (key: string) => {
     setExpandedGroups((prev) => {
@@ -221,8 +267,9 @@ export default function Reader() {
 
   if (!readingBook) {
     return (
-      <div className="animate-fade-in flex gap-8">
-        <div className="flex-1 min-w-0">
+      <>
+        <div className="animate-fade-in flex gap-8">
+          <div className="flex-1 min-w-0">
           <div className="mb-6">
             <h1 className="font-serif text-2xl font-bold text-ink-900">阅读工作台</h1>
             <p className="mt-1 font-serif text-sm text-leather-500">
@@ -255,7 +302,7 @@ export default function Reader() {
 
                 <div className="rounded-xl border border-leather-200 bg-white/80 p-6 shadow-book transition-all hover:shadow-book-lg">
                   <p className="font-serif text-[15px] leading-[1.85] text-ink-800">
-                    {para.content}
+                    {renderMarkedText(para.content)}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -330,7 +377,9 @@ export default function Reader() {
             </div>
           </div>
         </div>
+        <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
       </div>
+    </>
     )
   }
 
@@ -352,6 +401,7 @@ export default function Reader() {
       : contentText || ''
 
     return (
+      <>
       <div className="flex h-[calc(100vh-5rem)]">
         {/* Left panel - chapters (collapsible tree) */}
         <div className={`${showTOC ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden shrink-0 bg-white border-r border-leather-200 flex flex-col`}>
@@ -403,7 +453,7 @@ export default function Reader() {
           <div className="flex-1 overflow-y-auto p-8">
             <div className="max-w-3xl mx-auto">
               {chapterText ? (
-                <p className="whitespace-pre-wrap leading-relaxed text-ink-800">{chapterText}</p>
+                <p className="whitespace-pre-wrap leading-relaxed text-ink-800">{renderMarkedText(chapterText)}</p>
               ) : (
                 <p className="text-leather-400 italic">
                   {contentText ? '请选择章节以查看内容' : '暂无文本内容'}
@@ -413,10 +463,13 @@ export default function Reader() {
           </div>
         </div>
       </div>
+      <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
+    </>
     )
   }
 
   return (
+    <>
     <div className="animate-fade-in">
       <TOCSidebar />
 
@@ -540,5 +593,7 @@ export default function Reader() {
         )}
       </div>
     </div>
+    <ConceptTooltip concept={hoveredConcept} mousePos={mousePos} />
+    </>
   )
 }
